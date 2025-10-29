@@ -1,0 +1,35 @@
+# x402 Payment MCP Server Configuration
+# Copy this file to config.yaml and update with your values
+
+networks:
+  base:
+    chain_id: 8453
+    usdc_contract: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"
+    facilitator_url: "https://api.cdp.coinbase.com/platform/v2/x402/"
+    rpc_url: "https://mainnet.base.org"
+    payee_address: "${PAYEE_ADDRESS_BASE}"  # Set via environment variable
+
+  base-sepolia:
+    chain_id: 84532
+    usdc_contract: "0x036CbD53842c5426634e7929541eC2318f3dCF7e"
+    facilitator_url: "https://x402.org/facilitator"
+    rpc_url: "https://sepolia.base.org"
+    payee_address: "${PAYEE_ADDRESS_SEPOLIA}"  # Set via environment variable
+
+  arbitrum:
+    chain_id: 42161
+    usdc_contract: "0xaf88d065e77c8cC2239327C5EDb3A432268e5831"
+    facilitator_url: "https://api.cdp.coinbase.com/platform/v2/x402/"
+    rpc_url: "https://arb1.arbitrum.io/rpc"
+    payee_address: "${PAYEE_ADDRESS_ARBITRUM}"  # Set via environment variable
+
+eip712:
+  domain_name: "USD Coin"
+  domain_version: "2"
+
+logging:
+  level: "INFO"  # DEBUG, INFO, WARN, ERROR
+  format: "json"
+
+cache:
+  settlement_ttl_minutes: 10

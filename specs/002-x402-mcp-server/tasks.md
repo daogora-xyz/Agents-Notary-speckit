@@ -23,13 +23,13 @@ All paths relative to `mcp-servers/x402-mcp-server/` per plan.md structure.
 
 **Purpose**: Project initialization and basic structure per plan.md
 
-- [ ] T001 Create project directory structure at mcp-servers/x402-mcp-server/ with subdirs: tools/, internal/, tests/
-- [ ] T002 Initialize Go module with `go mod init` in mcp-servers/x402-mcp-server/
-- [ ] T003 [P] Add mcp-go dependency: `go get github.com/mark3labs/mcp-go`
-- [ ] T004 [P] Add go-ethereum dependency: `go get github.com/ethereum/go-ethereum`
-- [ ] T005 [P] Add yaml.v3 dependency: `go get gopkg.in/yaml.v3`
-- [ ] T006 [P] Create config.yaml.example in mcp-servers/x402-mcp-server/ with network configs from research.md
-- [ ] T007 [P] Configure golangci-lint in mcp-servers/x402-mcp-server/.golangci.yml
+- [x] T001 Create project directory structure at mcp-servers/x402-mcp-server/ with subdirs: tools/, internal/, tests/
+- [x] T002 Initialize Go module with `go mod init` in mcp-servers/x402-mcp-server/
+- [x] T003 [P] Add mcp-go dependency: `go get github.com/mark3labs/mcp-go`
+- [x] T004 [P] Add go-ethereum dependency: `go get github.com/ethereum/go-ethereum`
+- [x] T005 [P] Add yaml.v3 dependency: `go get gopkg.in/yaml.v3`
+- [x] T006 [P] Create config.yaml.example in mcp-servers/x402-mcp-server/ with network configs from research.md
+- [x] T007 [P] Configure golangci-lint in mcp-servers/x402-mcp-server/.golangci.yml
 
 **Checkpoint**: Project structure ready for foundational implementation
 
