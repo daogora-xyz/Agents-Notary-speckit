@@ -1,0 +1,86 @@
+{
+  "name": "verify_payment",
+  "description": "Verify EIP-3009 payment authorization signature using secp256k1 ECDSA recovery. Validates signature integrity, EIP-712 domain parameters, time bounds, and recovers signer address for balance verification.",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "authorization": {
+        "type": "object",
+        "description": "EIP-3009 authorization with signature components",
+        "properties": {
+          "from": {
+            "type": "string",
+            "description": "Payer Ethereum address (0x-prefixed)",
+            "pattern": "^0x[a-fA-F0-9]{40}$"
+          },
+          "to": {
+            "type": "string",
+            "description": "Payee Ethereum address (0x-prefixed)",
+            "pattern": "^0x[a-fA-F0-9]{40}$"
+          },
+          "value": {
+            "type": "string",
+            "description": "Payment amount in USDC atomic units (6 decimals)",
+            "pattern": "^[1-9][0-9]*$"
+          },
+          "validAfter": {
+            "type": "integer",
+            "description": "Unix timestamp - authorization valid after this time",
+            "minimum": 0
+          },
+          "validBefore": {
+            "type": "integer",
+            "description": "Unix timestamp - authorization expires after this time",
+            "minimum": 0
+          },
+          "nonce": {
+            "type": "string",
+            "description": "Random 32-byte nonce (hex string with 0x prefix)",
+            "pattern": "^0x[a-fA-F0-9]{64}$"
+          },
+          "v": {
+            "type": "integer",
+            "description": "ECDSA signature recovery parameter (27 or 28)",
+            "enum": [27, 28]
+          },
+          "r": {
+            "type": "string",
+            "description": "ECDSA signature r component (32-byte hex)",
+            "pattern": "^0x[a-fA-F0-9]{64}$"
+          },
+          "s": {
+            "type": "string",
+            "description": "ECDSA signature s component (32-byte hex)",
+            "pattern": "^0x[a-fA-F0-9]{64}$"
+          }
+        },
+        "required": ["from", "to", "value", "validAfter", "validBefore", "nonce", "v", "r", "s"]
+      },
+      "network": {
+        "type": "string",
+        "description": "Blockchain network for signature verification",
+        "enum": ["base", "base-sepolia", "arbitrum"]
+      }
+    },
+    "required": ["authorization", "network"]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "is_valid": {
+        "type": "boolean",
+        "description": "True if signature is cryptographically valid and passes all checks"
+      },
+      "signer_address": {
+        "type": "string",
+        "description": "Recovered signer address from signature (0x-prefixed)",
+        "pattern": "^0x[a-fA-F0-9]{40}$"
+      },
+      "error": {
+        "type": "string",
+        "description": "Error message if is_valid=false (signature mismatch, expired, domain mismatch, etc.)"
+      }
+    },
+    "required": ["is_valid", "signer_address"]
+  }
+}

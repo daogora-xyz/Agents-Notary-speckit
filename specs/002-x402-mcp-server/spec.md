@@ -5,6 +5,16 @@
 **Status**: Draft
 **Input**: User description: "Build MCP server using mcp-go with 5 tools - create_payment_requirement (generates x402 JSON), verify_payment (EIP-3009 signature validation), settle_payment (calls facilitator API), generate_browser_link (MetaMask deep links), encode_payment_for_qr (EIP-681 format). Support base, base-sepolia, arbitrum networks."
 
+## Clarifications
+
+### Session 2025-10-28
+
+- Q: Where should the `settle_payment` tool store cached settlement results for idempotency (FR-013)? → A: In-memory cache with TTL (5-10 minutes)
+- Q: How should payment requirement nonces be generated (FR-005, Open Question Q2)? → A: Blockchain-sourced nonces - Query wallet's transaction count from RPC endpoint for each payment
+- Q: What data should wallet callbacks include when users complete payments via browser links or QR codes (User Story 4, acceptance scenario 5)? → A: Transaction hash only via URL param (e.g., callback_url?tx=0x123...)
+- Q: How should the MCP server control access to its tools (security consideration)? → A: No authentication - stdio transport security (inherits HTTP proxy's security context)
+- Q: What observability instrumentation should the MCP server implement beyond basic logging (QM-004)? → A: Structured logging with levels - JSON logs with DEBUG/INFO/WARN/ERROR levels, context fields (tool, network, duration)
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Generate Payment Requirements (Priority: P1)
@@ -74,7 +84,7 @@ Browser users need MetaMask deep links to complete payments without programmatic
 2. **Given** browser user clicks the generated link, **When** MetaMask opens, **Then** transaction is pre-filled with correct recipient, amount (USDC atomic units), and network
 3. **Given** different networks (base=8453, base-sepolia=84532), **When** link is generated, **Then** includes correct chain_id parameter for network switching
 4. **Given** callback URL with special characters, **When** link is generated, **Then** URL-encodes callback properly
-5. **Given** user completes MetaMask transaction, **When** wallet calls callback URL with tx data, **Then** HTTP proxy can parse and verify settlement
+5. **Given** user completes MetaMask transaction, **When** wallet calls callback URL with tx hash parameter (e.g., `callback_url?tx=0x123...`), **Then** HTTP proxy can parse transaction hash and verify settlement on-chain
 
 ---
 
@@ -123,11 +133,11 @@ Mobile users need EIP-681 formatted payment data that mobile wallets can parse f
 
 ### Functional Requirements
 
-- **FR-001**: System MUST implement MCP server using mcp-go library with stdio transport
+- **FR-001**: System MUST implement MCP server using mcp-go library with stdio transport (runs as subprocess of HTTP proxy, no separate authentication required)
 - **FR-002**: System MUST register exactly 5 tools: `create_payment_requirement`, `verify_payment`, `settle_payment`, `generate_browser_link`, `encode_payment_for_qr`
 - **FR-003**: Tool `create_payment_requirement` MUST generate x402-compliant JSON with fields: `x402_version`, `scheme`, `network`, `maxAmountRequired`, `payee`, `valid_until`, `nonce`
 - **FR-004**: Tool `create_payment_requirement` MUST support networks: base (chain_id=8453), base-sepolia (chain_id=84532), arbitrum (chain_id=42161)
-- **FR-005**: Payment requirements MUST use unique nonces to prevent replay attacks (use timestamp + random suffix)
+- **FR-005**: Payment requirements MUST use unique nonces to prevent replay attacks (query blockchain RPC for wallet transaction count)
 - **FR-006**: Payment requirements MUST have `valid_until` timestamp exactly 5 minutes from creation time
 - **FR-007**: Tool `verify_payment` MUST validate EIP-3009 authorization signatures using secp256k1 ECDSA recovery
 - **FR-008**: Tool `verify_payment` MUST verify EIP-712 domain (name, version, chainId, verifyingContract) matches expected values
@@ -135,11 +145,11 @@ Mobile users need EIP-681 formatted payment data that mobile wallets can parse f
 - **FR-010**: Tool `verify_payment` MUST recover signer address from signature and return it for balance verification
 - **FR-011**: Tool `settle_payment` MUST POST verified authorization to x402 facilitator endpoint with timeout of 5 seconds
 - **FR-012**: Tool `settle_payment` MUST parse facilitator response containing tx_hash and block_number
-- **FR-013**: Tool `settle_payment` MUST implement idempotency - cache settlement results by nonce to prevent duplicate submissions
+- **FR-013**: Tool `settle_payment` MUST implement idempotency using in-memory cache with TTL (10 minutes) - cache settlement results by nonce to prevent duplicate submissions
 - **FR-014**: Tool `settle_payment` MUST handle facilitator errors (400 Bad Request, 500 Server Error) and return structured error responses
-- **FR-015**: Tool `generate_browser_link` MUST create MetaMask deep links using format `https://metamask.app.link/send/{address}@{chain_id}?...`
-- **FR-016**: Browser links MUST include parameters: value (amount in atomic units), callback URL (URL-encoded)
-- **FR-017**: Tool `encode_payment_for_qr` MUST generate EIP-681 URIs with format `ethereum:{address}@{chain_id}/transfer?address={token}&uint256={amount}`
+- **FR-015**: Tool `generate_browser_link` MUST create MetaMask deep links using format `https://link.metamask.io/send/{usdc_contract}@{chain_id}/transfer?address={payee}&uint256={amount}`
+- **FR-016**: Browser links MUST include parameters: value (amount in atomic units), callback URL (URL-encoded) - callback expects tx hash as URL parameter (e.g., `?tx=0x...`)
+- **FR-017**: Tool `encode_payment_for_qr` MUST generate EIP-681 URIs with format `ethereum:{usdc_contract}@{chain_id}/transfer?address={payee}&uint256={amount}` (first address is USDC token contract, address parameter is payee)
 - **FR-018**: QR encodings MUST use network-specific USDC contract addresses (base: 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913, etc.)
 - **FR-019**: All tools MUST validate input parameters and return descriptive errors for invalid inputs
 - **FR-020**: System MUST use configuration file (YAML/JSON) for network-specific settings (payee addresses, chain IDs, USDC contracts, facilitator URLs)
@@ -181,7 +191,7 @@ Mobile users need EIP-681 formatted payment data that mobile wallets can parse f
 - **SC-005**: Browser links generated by `generate_browser_link` successfully pre-fill MetaMask transactions in 100% of manual tests across Chrome, Firefox, Brave
 - **SC-006**: QR encodings from `encode_payment_for_qr` are successfully parsed by 3 tested mobile wallets (MetaMask Mobile, Rainbow, Coinbase Wallet) with 100% success rate
 - **SC-007**: Server handles concurrent requests (10 simultaneous tool calls) without race conditions or duplicate settlement attempts
-- **SC-008**: Integration test suite achieves 90%+ code coverage for all tool handlers
+- **SC-008**: Integration test suite achieves 90%+ code coverage for all tool handlers (exceeds Constitution II minimum of 80% for all packages, maintains 100% for security-sensitive signature verification)
 - **SC-009**: Settlement idempotency prevents duplicate facilitator calls - 100% of re-submitted payments return cached results within 10ms
 - **SC-010**: Configuration file supports adding new networks without code changes (extensibility test)
 
@@ -190,7 +200,7 @@ Mobile users need EIP-681 formatted payment data that mobile wallets can parse f
 - **QM-001**: All tool input schemas validated against MCP specification
 - **QM-002**: Error responses include actionable error messages (not just "invalid input")
 - **QM-003**: No hardcoded network parameters (addresses, chain IDs) in tool code - all from config
-- **QM-004**: Logging captures all facilitator interactions (request/response) for debugging
+- **QM-004**: Structured JSON logging with DEBUG/INFO/WARN/ERROR levels captures all facilitator interactions (request/response), tool invocations, and errors with context fields (tool_name, network, duration_ms)
 - **QM-005**: Unit tests exist for each tool covering happy path + 3 error scenarios minimum
 
 ## Out of Scope *(optional)*
@@ -206,7 +216,6 @@ Mobile users need EIP-681 formatted payment data that mobile wallets can parse f
 ## Open Questions *(optional)*
 
 - **Q1**: What is the exact x402 facilitator API specification? (Need documentation from x402.org)
-- **Q2**: Should nonce generation use blockchain-sourced nonces or locally generated UUIDs + timestamps?
 - **Q3**: Do we need to support testnets beyond base-sepolia (e.g., arbitrum-sepolia)?
 - **Q4**: What EIP-712 domain name/version should be used for signature verification? (Need to align with USDC contract)
 - **Q5**: Should facilitator URL be configurable per-network or globally?
@@ -217,7 +226,7 @@ Mobile users need EIP-681 formatted payment data that mobile wallets can parse f
 
 **External Services:**
 - x402 Facilitator API (`https://x402.org/facilitator`) - for payment settlement
-- Blockchain JSON-RPC endpoints (for nonce retrieval if needed)
+- Blockchain JSON-RPC endpoints (base, base-sepolia, arbitrum) - for querying wallet transaction count (nonces)
 
 **Libraries:**
 - `github.com/mark3labs/mcp-go` - MCP server framework

@@ -1,0 +1,79 @@
+{
+  "name": "encode_payment_for_qr",
+  "description": "Generate EIP-681 payment URI for QR code encoding. Returns URI that mobile wallets (MetaMask Mobile, Rainbow, Coinbase Wallet) can parse to pre-fill USDC transfer transactions. URI optimized for QR code version 10 or lower.",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "payment_requirement": {
+        "type": "object",
+        "description": "x402 payment requirement from create_payment_requirement",
+        "properties": {
+          "x402_version": {
+            "type": "integer",
+            "description": "x402 protocol version",
+            "const": 1
+          },
+          "scheme": {
+            "type": "string",
+            "description": "Payment scheme",
+            "const": "exact"
+          },
+          "network": {
+            "type": "string",
+            "description": "Blockchain network",
+            "enum": ["base", "base-sepolia", "arbitrum"]
+          },
+          "maxAmountRequired": {
+            "type": "string",
+            "description": "Maximum payment amount in atomic units",
+            "pattern": "^[1-9][0-9]*$"
+          },
+          "payee": {
+            "type": "string",
+            "description": "Payee Ethereum address (0x-prefixed)",
+            "pattern": "^0x[a-fA-F0-9]{40}$"
+          },
+          "valid_until": {
+            "type": "string",
+            "description": "ISO8601 timestamp - payment expires after",
+            "format": "date-time"
+          },
+          "nonce": {
+            "type": "string",
+            "description": "Blockchain-sourced nonce (hex string)",
+            "pattern": "^0x[a-fA-F0-9]+$"
+          },
+          "asset": {
+            "type": "string",
+            "description": "USDC contract address for the network",
+            "pattern": "^0x[a-fA-F0-9]{40}$"
+          }
+        },
+        "required": ["x402_version", "scheme", "network", "maxAmountRequired", "payee", "valid_until", "nonce", "asset"]
+      },
+      "callback_url": {
+        "type": "string",
+        "description": "Optional HTTPS callback URL to receive transaction hash (not part of EIP-681 standard, may be ignored by wallets)",
+        "format": "uri"
+      }
+    },
+    "required": ["payment_requirement"]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "eip681_uri": {
+        "type": "string",
+        "description": "EIP-681 payment URI (format: ethereum:{usdc_contract}@{chain_id}/transfer?address={payee}&uint256={amount})",
+        "pattern": "^ethereum:0x[a-fA-F0-9]{40}@[0-9]+/transfer\\?address=0x[a-fA-F0-9]{40}&uint256=[0-9]+.*$"
+      },
+      "estimated_qr_version": {
+        "type": "integer",
+        "description": "Estimated QR code version based on URI length (target: ≤10 for standard QR readers)",
+        "minimum": 1,
+        "maximum": 40
+      }
+    },
+    "required": ["eip681_uri", "estimated_qr_version"]
+  }
+}
