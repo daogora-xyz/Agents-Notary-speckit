@@ -28,7 +28,7 @@ func (t *CreatePaymentRequirementTool) Name() string {
 
 // Description returns the tool description
 func (t *CreatePaymentRequirementTool) Description() string {
-	return "Generate x402-compliant payment requirement for blockchain certification payment. Returns payment details including amount, payee address, validity period, and blockchain nonce."
+	return "Generate x402-compliant payment requirement per official Coinbase x402 specification. Returns complete payment requirement with resource URL, description, and payment details."
 }
 
 // Schema returns the JSON schema for the tool's input
@@ -46,23 +46,51 @@ func (t *CreatePaymentRequirementTool) Schema() interface{} {
 				"description": "Blockchain network for payment",
 				"enum":        []string{"base", "base-sepolia", "arbitrum"},
 			},
+			"resource": map[string]interface{}{
+				"type":        "string",
+				"description": "URL of the resource being paid for (e.g., certification endpoint)",
+			},
+			"description": map[string]interface{}{
+				"type":        "string",
+				"description": "Human-readable description of what the payment is for",
+			},
+			"mime_type": map[string]interface{}{
+				"type":        "string",
+				"description": "MIME type of the resource response (default: application/json)",
+				"default":     "application/json",
+			},
 		},
-		"required": []string{"amount", "network"},
+		"required": []string{"amount", "network", "resource", "description"},
 	}
 }
 
 // Execute executes the tool with the given arguments
 func (t *CreatePaymentRequirementTool) Execute(args map[string]interface{}) (interface{}, error) {
-	// Extract amount
+	// Extract required fields
 	amount, ok := args["amount"].(string)
 	if !ok {
 		return nil, fmt.Errorf("amount must be a string")
 	}
 
-	// Extract network
 	network, ok := args["network"].(string)
 	if !ok {
 		return nil, fmt.Errorf("network must be a string")
+	}
+
+	resource, ok := args["resource"].(string)
+	if !ok {
+		return nil, fmt.Errorf("resource must be a string")
+	}
+
+	description, ok := args["description"].(string)
+	if !ok {
+		return nil, fmt.Errorf("description must be a string")
+	}
+
+	// Extract optional mime_type with default
+	mimeType, ok := args["mime_type"].(string)
+	if !ok || mimeType == "" {
+		mimeType = "application/json"
 	}
 
 	// Get network configuration
@@ -78,6 +106,9 @@ func (t *CreatePaymentRequirementTool) Execute(args map[string]interface{}) (int
 		network,
 		networkCfg.PayeeAddress,
 		networkCfg.USDCContract,
+		resource,
+		description,
+		mimeType,
 		24*time.Hour,
 	)
 	if err != nil {
@@ -87,9 +118,11 @@ func (t *CreatePaymentRequirementTool) Execute(args map[string]interface{}) (int
 	// Log the operation
 	logger := t.server.GetLogger()
 	logger.Info("Created payment requirement", map[string]interface{}{
-		"network": network,
-		"amount":  amount,
-		"nonce":   paymentReq.Nonce,
+		"network":     network,
+		"amount":      amount,
+		"resource":    resource,
+		"description": description,
+		"nonce":       paymentReq.Nonce,
 	})
 
 	// Return as map for MCP

@@ -19,9 +19,18 @@
       "Bash(export SPECIFY_FEATURE=\"002-x402-mcp-server\")",
       "Bash(cat:*)",
       "Bash(go mod init:*)",
-      "Bash(go test:*)"
+      "Bash(go test:*)",
+      "Bash(pkill:*)",
+      "Bash(go doc:*)",
+      "Bash([ -d \"/home/lessuseless/Projects/Agents-Notary-speckit/mcp-servers/x402-mcp-server/tests/integration\" ])",
+      "Bash(jobs:*)",
+      "Read(//home/lessuseless/.claude/projects/**)"
     ],
     "deny": [],
     "ask": []
-  }
+  },
+  "enabledMcpjsonServers": [
+    "sequential-thinking",
+    "context7"
+  ]
 }

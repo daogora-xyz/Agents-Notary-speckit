@@ -51,7 +51,6 @@ func main() {
 	mcpServer := server.NewMCPServer(
 		serverName,
 		serverVersion,
-		server.WithStdio(),
 	)
 
 	// Initialize x402 server with tools
@@ -80,6 +79,14 @@ func main() {
 		os.Exit(1)
 	}
 
+	settlePaymentTool := tools.NewSettlePaymentTool(x402Server)
+	if err := x402Server.AddTool(settlePaymentTool); err != nil {
+		log.Error("Failed to add settle_payment tool", map[string]interface{}{
+			"error": err.Error(),
+		})
+		os.Exit(1)
+	}
+
 	// Register tools with MCP server
 	if err := x402Server.RegisterTools(mcpServer); err != nil {
 		log.Error("Failed to register tools", map[string]interface{}{
@@ -93,7 +100,7 @@ func main() {
 	})
 
 	// Start server (blocking)
-	if err := mcpServer.Serve(); err != nil {
+	if err := server.ServeStdio(mcpServer); err != nil {
 		log.Error("Server error", map[string]interface{}{
 			"error": err.Error(),
 		})

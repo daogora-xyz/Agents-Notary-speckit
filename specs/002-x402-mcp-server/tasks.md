@@ -153,26 +153,26 @@ All paths relative to `mcp-servers/x402-mcp-server/` per plan.md structure.
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T053 [P] [US3] Contract test for settle_payment tool schema in tests/contract/mcp_tool_schemas_test.go (input/output validation per contracts/settle_payment.json)
-- [ ] T054 [P] [US3] Unit test for facilitator request construction in tests/unit/x402_test.go (verify POST body format from research.md)
-- [ ] T055 [P] [US3] Unit test for facilitator success response parsing in tests/unit/x402_test.go (tx_hash, block_number)
-- [ ] T056 [P] [US3] Unit test for facilitator error handling in tests/unit/x402_test.go (400, 500, timeout)
-- [ ] T057 [P] [US3] Unit test for idempotency cache in tests/unit/x402_test.go (same nonce returns cached result)
-- [ ] T058 [US3] Integration test for facilitator settlement in tests/integration/facilitator_integration_test.go (Base Sepolia testnet, SC-003)
+- [x] T053 [P] [US3] Contract test for settle_payment tool schema in tests/contract/settle_payment_test.go
+- [x] T054 [P] [US3] Unit test for facilitator request construction in tests/unit/facilitator_test.go (PASS)
+- [x] T055 [P] [US3] Unit test for facilitator success response parsing in tests/unit/facilitator_test.go (PASS)
+- [x] T056 [P] [US3] Unit test for facilitator error handling in tests/unit/facilitator_test.go (PASS - 400/500/timeout)
+- [x] T057 [P] [US3] Unit test for idempotency cache in tests/unit/facilitator_test.go (PASS)
+- [ ] T058 [US3] Integration test for facilitator settlement (SKIPPED: not critical for MVP, testnet access required)
 
 ### Implementation for User Story 3
 
-- [ ] T059 [P] [US3] Create FacilitatorResponse struct in internal/x402/facilitator_client.go per data-model.md
-- [ ] T060 [P] [US3] Create SettlePaymentInput/Output structs in internal/x402/facilitator_client.go per data-model.md
-- [ ] T061 [US3] Implement HTTP client for x402 facilitator API in internal/x402/facilitator_client.go with 5s timeout (FR-011)
-- [ ] T062 [US3] Implement facilitator POST request formatting in internal/x402/facilitator_client.go per research.md API spec
-- [ ] T063 [US3] Implement facilitator response parsing in internal/x402/facilitator_client.go (success, pending, failed states)
-- [ ] T064 [US3] Implement settle_payment tool handler in tools/settle_payment.go (FR-012, FR-014)
-- [ ] T065 [US3] Integrate verify_payment signature check before settlement (dependency on Phase 4)
-- [ ] T066 [US3] Integrate idempotency cache from internal/cache/ (FR-013: 10-minute TTL by nonce)
-- [ ] T067 [US3] Add error handling for facilitator errors (400/500/timeout) per FR-014
-- [ ] T068 [US3] Add structured logging for settlement attempts (status, tx_hash, retry_after, duration_ms)
-- [ ] T069 [US3] Register settle_payment tool in main.go
+- [x] T059 [P] [US3] Create FacilitatorResponse struct in internal/facilitator/response.go
+- [x] T060 [P] [US3] Create SettlePaymentInput/Output handled via EIP3009Authorization struct
+- [x] T061 [US3] Implement HTTP client for x402 facilitator API in internal/facilitator/client.go with 5s timeout (FR-011)
+- [x] T062 [US3] Implement facilitator POST request formatting in internal/facilitator/client.go
+- [x] T063 [US3] Implement facilitator response parsing in internal/facilitator/client.go (success, pending, failed states)
+- [x] T064 [US3] Implement settle_payment tool handler in tools/settle_payment.go (FR-012, FR-014)
+- [x] T065 [US3] Integrate verify_payment signature check before settlement (dependency on Phase 4)
+- [x] T066 [US3] Integrate idempotency cache in internal/facilitator/client.go (FR-013: 10-minute TTL by nonce)
+- [x] T067 [US3] Add error handling for facilitator errors (400/500/timeout) per FR-014
+- [x] T068 [US3] Add structured logging for settlement attempts (status, tx_hash, retry_after, duration_ms)
+- [x] T069 [US3] Register settle_payment tool in main.go
 
 **Checkpoint**: Core payment flow (create → verify → settle) now complete
 

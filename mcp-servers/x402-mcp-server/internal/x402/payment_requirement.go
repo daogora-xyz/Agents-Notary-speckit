@@ -11,15 +11,32 @@ import (
 )
 
 // PaymentRequirement represents an x402-compliant payment requirement
+// per official Coinbase x402 specification
 type PaymentRequirement struct {
-	X402Version       int    `json:"x402_version"`
-	Scheme            string `json:"scheme"`
-	Network           string `json:"network"`
-	MaxAmountRequired string `json:"maxAmountRequired"`
-	Payee             string `json:"payee"`
-	ValidUntil        string `json:"valid_until"`
-	Nonce             string `json:"nonce"`
-	Asset             string `json:"asset"`
+	// Core x402 v1 fields (official spec - github.com/coinbase/x402)
+	Scheme            string                 `json:"scheme"`
+	Network           string                 `json:"network"`
+	MaxAmountRequired string                 `json:"maxAmountRequired"`
+	Resource          string                 `json:"resource"`
+	Description       string                 `json:"description"`
+	MimeType          string                 `json:"mimeType"`
+	OutputSchema      map[string]interface{} `json:"outputSchema,omitempty"`
+	PayTo             string                 `json:"payTo"`
+	MaxTimeoutSeconds int                    `json:"maxTimeoutSeconds"`
+	Asset             string                 `json:"asset"`
+	Extra             ExtraMetadata          `json:"extra"`
+
+	// Extension fields (for backward compatibility and internal use)
+	X402Version int    `json:"x402_version"`
+	ValidUntil  string `json:"valid_until"`
+	Nonce       string `json:"nonce"`
+}
+
+// ExtraMetadata contains scheme-specific payment details
+// For "exact" scheme on EVM networks: name and version pertain to the asset
+type ExtraMetadata struct {
+	Name    string `json:"name,omitempty"`    // Asset name (e.g., "USD Coin")
+	Version string `json:"version,omitempty"` // Asset version (e.g., "2")
 }
 
 var (
@@ -38,11 +55,15 @@ var (
 )
 
 // NewPaymentRequirement creates a new x402-compliant payment requirement
+// per official Coinbase x402 specification
 func NewPaymentRequirement(
 	amount string,
 	network string,
-	payee string,
+	payTo string,
 	asset string,
+	resource string,
+	description string,
+	mimeType string,
 	validity time.Duration,
 ) (*PaymentRequirement, error) {
 	// Validate amount
@@ -55,14 +76,25 @@ func NewPaymentRequirement(
 		return nil, fmt.Errorf("unsupported network: %s", network)
 	}
 
-	// Validate payee address
-	if !addressPattern.MatchString(payee) {
-		return nil, fmt.Errorf("invalid payee address format")
+	// Validate payTo address
+	if !addressPattern.MatchString(payTo) {
+		return nil, fmt.Errorf("invalid payTo address format")
 	}
 
 	// Validate asset address
 	if !addressPattern.MatchString(asset) {
 		return nil, fmt.Errorf("invalid asset address format")
+	}
+
+	// Validate required fields
+	if resource == "" {
+		return nil, fmt.Errorf("resource URL is required")
+	}
+	if description == "" {
+		return nil, fmt.Errorf("description is required")
+	}
+	if mimeType == "" {
+		mimeType = "application/json" // Default MIME type
 	}
 
 	// Generate unique nonce
@@ -75,14 +107,26 @@ func NewPaymentRequirement(
 	validUntil := time.Now().UTC().Add(validity)
 
 	return &PaymentRequirement{
-		X402Version:       1,
+		// Official x402 v1 fields
 		Scheme:            "exact",
 		Network:           network,
 		MaxAmountRequired: amount,
-		Payee:             payee,
-		ValidUntil:        validUntil.Format(time.RFC3339),
-		Nonce:             nonce,
+		Resource:          resource,
+		Description:       description,
+		MimeType:          mimeType,
+		OutputSchema:      nil, // Optional, can be set by caller
+		PayTo:             payTo,
+		MaxTimeoutSeconds: 60, // Reasonable default for API responses
 		Asset:             asset,
+		Extra: ExtraMetadata{
+			Name:    "USD Coin", // Standard USDC name
+			Version: "2",        // USDC version from EIP-712 domain
+		},
+
+		// Extension fields
+		X402Version: 1,
+		ValidUntil:  validUntil.Format(time.RFC3339),
+		Nonce:       nonce,
 	}, nil
 }
 
@@ -114,16 +158,34 @@ func (pr *PaymentRequirement) ToJSON() ([]byte, error) {
 
 // ToMap converts the payment requirement to a map for MCP tool output
 func (pr *PaymentRequirement) ToMap() map[string]interface{} {
-	return map[string]interface{}{
-		"x402_version":       pr.X402Version,
-		"scheme":             pr.Scheme,
-		"network":            pr.Network,
-		"maxAmountRequired":  pr.MaxAmountRequired,
-		"payee":              pr.Payee,
-		"valid_until":        pr.ValidUntil,
-		"nonce":              pr.Nonce,
-		"asset":              pr.Asset,
+	result := map[string]interface{}{
+		// Official x402 v1 fields
+		"scheme":            pr.Scheme,
+		"network":           pr.Network,
+		"maxAmountRequired": pr.MaxAmountRequired,
+		"resource":          pr.Resource,
+		"description":       pr.Description,
+		"mimeType":          pr.MimeType,
+		"payTo":             pr.PayTo,
+		"maxTimeoutSeconds": pr.MaxTimeoutSeconds,
+		"asset":             pr.Asset,
+		"extra": map[string]interface{}{
+			"name":    pr.Extra.Name,
+			"version": pr.Extra.Version,
+		},
+
+		// Extension fields
+		"x402_version": pr.X402Version,
+		"valid_until":  pr.ValidUntil,
+		"nonce":        pr.Nonce,
 	}
+
+	// Add outputSchema if present
+	if pr.OutputSchema != nil {
+		result["outputSchema"] = pr.OutputSchema
+	}
+
+	return result
 }
 
 // Validate checks if the payment requirement is valid
@@ -144,12 +206,29 @@ func (pr *PaymentRequirement) Validate() error {
 		return fmt.Errorf("invalid maxAmountRequired format")
 	}
 
-	if !addressPattern.MatchString(pr.Payee) {
-		return fmt.Errorf("invalid payee address format")
+	// Validate official x402 fields
+	if pr.Resource == "" {
+		return fmt.Errorf("resource is required")
+	}
+
+	if pr.Description == "" {
+		return fmt.Errorf("description is required")
+	}
+
+	if pr.MimeType == "" {
+		return fmt.Errorf("mimeType is required")
+	}
+
+	if !addressPattern.MatchString(pr.PayTo) {
+		return fmt.Errorf("invalid payTo address format")
 	}
 
 	if !addressPattern.MatchString(pr.Asset) {
 		return fmt.Errorf("invalid asset address format")
+	}
+
+	if pr.MaxTimeoutSeconds <= 0 {
+		return fmt.Errorf("maxTimeoutSeconds must be positive")
 	}
 
 	// Validate valid_until is a valid RFC3339 timestamp
