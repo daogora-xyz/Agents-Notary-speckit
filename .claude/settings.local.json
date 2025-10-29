@@ -18,7 +18,8 @@
       "Bash(.specify/scripts/bash/update-agent-context.sh:*)",
       "Bash(export SPECIFY_FEATURE=\"002-x402-mcp-server\")",
       "Bash(cat:*)",
-      "Bash(go mod init:*)"
+      "Bash(go mod init:*)",
+      "Bash(go test:*)"
     ],
     "deny": [],
     "ask": []

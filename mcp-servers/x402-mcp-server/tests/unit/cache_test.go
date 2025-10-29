@@ -78,8 +78,14 @@ func TestTTLCache_Idempotency(t *testing.T) {
 		t.Error("Second get should also find cached result")
 	}
 
-	if cached != cached2 {
-		t.Error("Should return same cached instance")
+	// Verify both cached values have the same content
+	cachedMap2, ok := cached2.(map[string]interface{})
+	if !ok {
+		t.Fatal("Second cached value should be map")
+	}
+
+	if cachedMap2["status"] != "settled" || cachedMap2["tx_hash"] != "0xabcdef" {
+		t.Error("Second get should return same cached content")
 	}
 }
 
