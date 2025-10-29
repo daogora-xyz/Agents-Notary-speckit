@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(nix develop:*)",
+      "Bash(.specify/scripts/bash/create-new-feature.sh:*)",
+      "Bash(.specify/scripts/bash/check-prerequisites.sh:*)",
+      "Bash([ -d \"specs/001-foundation-setup/checklists\" ])",
+      "Bash(chmod:*)",
+      "Bash(nix flake update:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
