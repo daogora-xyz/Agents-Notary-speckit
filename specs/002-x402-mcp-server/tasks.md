@@ -43,18 +43,18 @@ All paths relative to `mcp-servers/x402-mcp-server/` per plan.md structure.
 
 ### Configuration & Logging Infrastructure
 
-- [ ] T008 Implement Config struct and YAML loading in internal/config/config.go per data-model.md
-- [ ] T009 Implement NetworkConfig validation (chain IDs, addresses) in internal/config/network.go
-- [ ] T010 [P] Implement structured JSON logger in internal/logger/structured.go with DEBUG/INFO/WARN/ERROR levels (QM-004)
-- [ ] T011 [P] Create TTL-based in-memory cache in internal/cache/ttl_cache.go for settlement idempotency (FR-013)
+- [x] T008 Implement Config struct and YAML loading in internal/config/config.go per data-model.md
+- [x] T009 Implement NetworkConfig validation (chain IDs, addresses) in internal/config/network.go
+- [x] T010 [P] Implement structured JSON logger in internal/logger/structured.go with DEBUG/INFO/WARN/ERROR levels (QM-004)
+- [x] T011 [P] Create TTL-based in-memory cache in internal/cache/ttl_cache.go for settlement idempotency (FR-013)
 
 ### Tests for Foundational Infrastructure
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T012 [P] Unit test for config loading in tests/unit/config_test.go (happy path + invalid YAML)
-- [ ] T013 [P] Unit test for network validation in tests/unit/config_test.go (invalid chain ID, malformed address)
-- [ ] T014 [P] Unit test for TTL cache in tests/unit/cache_test.go (set, get, expiry, idempotency)
+- [x] T012 [P] Unit test for config loading in tests/unit/config_test.go (happy path + invalid YAML)
+- [x] T013 [P] Unit test for network validation in tests/unit/config_test.go (invalid chain ID, malformed address)
+- [x] T014 [P] Unit test for TTL cache in tests/unit/cache_test.go (set, get, expiry, idempotency)
 
 ### EIP-712 & Crypto Utilities
 
