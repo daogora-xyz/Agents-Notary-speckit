@@ -309,21 +309,35 @@ func TestSignatureVerification_AddressFormats(t *testing.T) {
 		{"0x1234567890123456789012345678901234567890", true},
 		{"0x0000000000000000000000000000000000000000", true},
 		{"0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF", true},
-		{"1234567890123456789012345678901234567890", false},   // Missing 0x
-		{"0x12345", false},                                     // Too short
+		{"1234567890123456789012345678901234567890", false}, // Missing 0x
+		{"0x12345", false}, // Too short
 		{"0x12345678901234567890123456789012345678901", false}, // Too long
-		{"0xGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG", false}, // Invalid hex
+		{"0xGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG", false},  // Invalid hex
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.address, func(t *testing.T) {
 			_ = common.HexToAddress(tc.address)
 			// common.HexToAddress is lenient, so we need to validate format separately
-			isValid := len(tc.address) == 42 && tc.address[:2] == "0x"
+			isValid := validateAddress(tc.address)
 
 			if isValid != tc.valid {
 				t.Errorf("Address validation mismatch for %s: got %v, want %v", tc.address, isValid, tc.valid)
 			}
 		})
 	}
+}
+
+// validateAddress checks if a string is a valid Ethereum address format
+func validateAddress(addr string) bool {
+	if len(addr) != 42 || addr[:2] != "0x" {
+		return false
+	}
+	// Check if all characters after 0x are valid hex
+	for _, c := range addr[2:] {
+		if !((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F')) {
+			return false
+		}
+	}
+	return true
 }

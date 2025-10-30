@@ -12,10 +12,10 @@ import (
 
 // NonceFetcher retrieves transaction nonces from an Ethereum RPC endpoint
 type NonceFetcher struct {
-	client      *ethclient.Client
-	maxRetries  int
-	retryDelay  time.Duration
-	timeout     time.Duration
+	client     *ethclient.Client
+	maxRetries int
+	retryDelay time.Duration
+	timeout    time.Duration
 }
 
 // NewNonceFetcher creates a new nonce fetcher with the specified RPC URL

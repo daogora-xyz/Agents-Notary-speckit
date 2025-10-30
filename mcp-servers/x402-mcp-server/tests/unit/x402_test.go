@@ -15,6 +15,9 @@ func TestPaymentRequirement_Generate_Base(t *testing.T) {
 		"base",
 		"0x1234567890123456789012345678901234567890", // Payee address
 		"0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", // USDC contract (Base)
+		"https://api.example.com/resource",
+		"Test payment requirement",
+		"application/json",
 		time.Hour*24, // 24 hour validity
 	)
 
@@ -42,9 +45,9 @@ func TestPaymentRequirement_Generate_Base(t *testing.T) {
 		t.Errorf("Expected maxAmountRequired '50000', got %s", req.MaxAmountRequired)
 	}
 
-	// Validate payee address format
-	if req.Payee != "0x1234567890123456789012345678901234567890" {
-		t.Errorf("Expected payee address, got %s", req.Payee)
+	// Validate payTo address format
+	if req.PayTo != "0x1234567890123456789012345678901234567890" {
+		t.Errorf("Expected payTo address, got %s", req.PayTo)
 	}
 
 	// Validate asset (USDC contract)
@@ -75,7 +78,7 @@ func TestPaymentRequirement_NonceUniqueness(t *testing.T) {
 	validity := time.Hour * 24
 
 	// Generate first payment requirement
-	req1, err := x402.NewPaymentRequirement("100000", "base", payee, asset, validity)
+	req1, err := x402.NewPaymentRequirement("100000", "base", payee, asset, "https://api.example.com/resource", "Test nonce uniqueness", "application/json", validity)
 	if err != nil {
 		t.Fatalf("First NewPaymentRequirement failed: %v", err)
 	}
@@ -84,7 +87,7 @@ func TestPaymentRequirement_NonceUniqueness(t *testing.T) {
 	time.Sleep(10 * time.Millisecond)
 
 	// Generate second payment requirement
-	req2, err := x402.NewPaymentRequirement("100000", "base", payee, asset, validity)
+	req2, err := x402.NewPaymentRequirement("100000", "base", payee, asset, "https://api.example.com/resource", "Test nonce uniqueness", "application/json", validity)
 	if err != nil {
 		t.Fatalf("Second NewPaymentRequirement failed: %v", err)
 	}
@@ -105,6 +108,9 @@ func TestPaymentRequirement_InvalidNetwork(t *testing.T) {
 		"ethereum", // Unsupported network
 		"0x1234567890123456789012345678901234567890",
 		"0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+		"https://api.example.com/resource",
+		"Test payment requirement",
+		"application/json",
 		time.Hour*24,
 	)
 
@@ -134,6 +140,9 @@ func TestPaymentRequirement_InvalidAmount(t *testing.T) {
 				"base",
 				"0x1234567890123456789012345678901234567890",
 				"0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+				"https://api.example.com/resource",
+				"Test payment requirement",
+				"application/json",
 				time.Hour*24,
 			)
 
@@ -162,6 +171,9 @@ func TestPaymentRequirement_InvalidAddress(t *testing.T) {
 				"base",
 				tc.address, // Invalid payee address
 				"0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+				"https://api.example.com/resource",
+				"Test payment requirement",
+				"application/json",
 				time.Hour*24,
 			)
 
@@ -190,6 +202,9 @@ func TestPaymentRequirement_MultipleNetworks(t *testing.T) {
 				network,
 				payee,
 				usdcContract,
+				"https://api.example.com/resource",
+				"Test payment requirement",
+				"application/json",
 				validity,
 			)
 
@@ -215,6 +230,9 @@ func TestPaymentRequirement_ToJSON(t *testing.T) {
 		"base",
 		"0x1234567890123456789012345678901234567890",
 		"0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+		"https://api.example.com/resource",
+		"Test payment requirement",
+		"application/json",
 		time.Hour*24,
 	)
 
@@ -234,7 +252,7 @@ func TestPaymentRequirement_ToJSON(t *testing.T) {
 		"scheme",
 		"network",
 		"maxAmountRequired",
-		"payee",
+		"payTo",
 		"valid_until",
 		"nonce",
 		"asset",

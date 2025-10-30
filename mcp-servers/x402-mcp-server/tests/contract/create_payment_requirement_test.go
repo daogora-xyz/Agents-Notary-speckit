@@ -141,7 +141,7 @@ func TestCreatePaymentRequirement_Execute_ValidInput(t *testing.T) {
 		"scheme",
 		"network",
 		"maxAmountRequired",
-		"payee",
+		"payTo",
 		"valid_until",
 		"nonce",
 		"asset",
@@ -154,8 +154,9 @@ func TestCreatePaymentRequirement_Execute_ValidInput(t *testing.T) {
 	}
 
 	// Validate specific values
-	if resultMap["x402_version"] != float64(1) { // JSON numbers are float64
-		t.Errorf("Expected x402_version 1, got %v", resultMap["x402_version"])
+	// Type assert to handle the interface{} comparison
+	if v, ok := resultMap["x402_version"].(int); !ok || v != 1 {
+		t.Errorf("Expected x402_version 1, got %v (type: %T)", resultMap["x402_version"], resultMap["x402_version"])
 	}
 
 	if resultMap["scheme"] != "exact" {

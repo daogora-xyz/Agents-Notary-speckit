@@ -5,20 +5,26 @@ Model Context Protocol (MCP) server providing blockchain payment capabilities fo
 ## Overview
 
 The x402 Payment MCP Server enables AI agents to:
-- Generate payment requirements with blockchain payment details
+- Generate **x402 v1 compliant** payment requirements with full spec support
 - Verify cryptographic payment authorizations (EIP-3009)
 - Submit verified payments to the x402 facilitator for on-chain settlement
 
-Supports USDC payments on Base, Base Sepolia, and Arbitrum networks.
+**Standards Compliance:**
+- ✅ Full [Coinbase x402 v1 specification](https://github.com/coinbase/x402) support
+- ✅ EIP-3009: Transfer With Authorization
+- ✅ EIP-712: Typed Structured Data Hashing and Signing
+
+**Supported Networks:** USDC payments on Base, Base Sepolia, and Arbitrum
 
 ## Features
 
 ### MCP Tools
 
-1. **create_payment_requirement** - Generate payment requirements
-   - Creates structured payment metadata
-   - Returns blockchain-specific payment details (contract address, chain ID, payee address)
+1. **create_payment_requirement** - Generate x402 v1 compliant payment requirements
+   - Creates structured payment metadata with resource URL and description
+   - Returns complete x402 specification fields (scheme, network, payTo, asset, extra metadata)
    - Generates unique nonces for payment authorization
+   - Supports custom MIME types and timeout configuration
 
 2. **verify_payment** - Verify EIP-3009 signatures
    - Validates ECDSA signatures using secp256k1 recovery
@@ -152,29 +158,35 @@ Environment variables can be referenced in `config.yaml` using `${VARIABLE_NAME}
   "params": {
     "name": "create_payment_requirement",
     "arguments": {
-      "amount": "5.00",
-      "currency": "USD",
-      "description": "API access fee",
-      "network": "base-sepolia"
+      "amount": "5000000",
+      "network": "base-sepolia",
+      "resource": "https://api.example.com/protected-resource",
+      "description": "API access fee for premium features",
+      "mime_type": "application/json"
     }
   }
 }
 ```
 
-Response:
+Response (x402 v1 compliant):
 ```json
 {
-  "requirement_id": "req_abc123",
-  "amount": "5.00",
-  "currency": "USD",
-  "payment_details": {
-    "network": "base-sepolia",
-    "chain_id": 84532,
-    "usdc_contract": "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
-    "payee_address": "0x...",
-    "amount_atomic": "5000000",
-    "nonce": "0x..."
-  }
+  "scheme": "exact",
+  "network": "base-sepolia",
+  "maxAmountRequired": "5000000",
+  "resource": "https://api.example.com/protected-resource",
+  "description": "API access fee for premium features",
+  "mimeType": "application/json",
+  "payTo": "0xYourPayeeAddress",
+  "maxTimeoutSeconds": 60,
+  "asset": "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
+  "extra": {
+    "name": "USD Coin",
+    "version": "2"
+  },
+  "x402_version": 1,
+  "valid_until": "2025-10-30T12:00:00Z",
+  "nonce": "0x..."
 }
 ```
 
@@ -260,14 +272,17 @@ x402-mcp-server/
 │   ├── eip712/                  # EIP-712 typed data handling
 │   ├── facilitator/             # x402 facilitator HTTP client
 │   ├── logger/                  # Structured logging
-│   └── server/                  # Core server implementation
+│   ├── server/                  # Core server implementation
+│   └── x402/                    # x402 protocol implementation
+│       └── payment_requirement.go
 ├── tools/
 │   ├── create_payment_requirement.go
 │   ├── verify_payment.go
 │   └── settle_payment.go
 ├── tests/
 │   ├── unit/                    # Unit tests
-│   └── contract/                # Contract/integration tests
+│   ├── contract/                # Contract tests
+│   └── integration/             # Integration tests
 ├── config.yaml.example          # Example configuration
 ├── go.mod                       # Go module definition
 └── README.md                    # This file

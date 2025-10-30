@@ -12,15 +12,15 @@ import (
 // EIP3009Authorization represents the payment authorization data structure
 // per EIP-3009 receiveWithAuthorization spec
 type EIP3009Authorization struct {
-	From        string `json:"from"`         // Payer address (hex string)
-	To          string `json:"to"`           // Payee address (hex string)
-	Value       string `json:"value"`        // Amount in atomic units (decimal string)
-	ValidAfter  uint64 `json:"validAfter"`   // Unix timestamp (seconds)
-	ValidBefore uint64 `json:"validBefore"`  // Unix timestamp (seconds)
-	Nonce       string `json:"nonce"`        // bytes32 as hex string
-	V           uint8  `json:"v"`            // Signature parameter (27 or 28)
-	R           string `json:"r"`            // Signature parameter (bytes32 hex)
-	S           string `json:"s"`            // Signature parameter (bytes32 hex)
+	From        string `json:"from"`        // Payer address (hex string)
+	To          string `json:"to"`          // Payee address (hex string)
+	Value       string `json:"value"`       // Amount in atomic units (decimal string)
+	ValidAfter  uint64 `json:"validAfter"`  // Unix timestamp (seconds)
+	ValidBefore uint64 `json:"validBefore"` // Unix timestamp (seconds)
+	Nonce       string `json:"nonce"`       // bytes32 as hex string
+	V           uint8  `json:"v"`           // Signature parameter (27 or 28)
+	R           string `json:"r"`           // Signature parameter (bytes32 hex)
+	S           string `json:"s"`           // Signature parameter (bytes32 hex)
 }
 
 // VerifyPaymentOutput represents the verification result

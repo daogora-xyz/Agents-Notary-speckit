@@ -3,11 +3,13 @@ package contract
 import (
 	"bytes"
 	"encoding/json"
+	"math/big"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 	"time"
 
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/lessuseless/agents-notary/mcp-servers/x402-mcp-server/internal/config"
 	"github.com/lessuseless/agents-notary/mcp-servers/x402-mcp-server/internal/logger"
 	x402server "github.com/lessuseless/agents-notary/mcp-servers/x402-mcp-server/internal/server"
@@ -125,19 +127,40 @@ func TestSettlePayment_Execute_SuccessfulSettlement(t *testing.T) {
 
 	tool := tools.NewSettlePaymentTool(srv)
 
-	// Prepare input with valid authorization
+	// Generate valid signature for testing
+	privateKey, fromAddr, err := createTestPrivateKeyAndAddress()
+	if err != nil {
+		t.Fatalf("Failed to create test private key: %v", err)
+	}
+
+	toAddr := common.HexToAddress("0x2222222222222222222222222222222222222222")
+	value := big.NewInt(50000)
 	now := time.Now().Unix()
+	validAfter := big.NewInt(now - 3600)
+	validBefore := big.NewInt(now + 3600)
+	var nonce [32]byte
+	copy(nonce[:], []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1})
+
+	chainID := big.NewInt(8453) // Base mainnet
+	usdcContract := common.HexToAddress("0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913")
+
+	v, r, s, err := generateValidSignature(privateKey, fromAddr, toAddr, value, validAfter, validBefore, nonce, chainID, usdcContract)
+	if err != nil {
+		t.Fatalf("Failed to generate valid signature: %v", err)
+	}
+
+	// Prepare input with valid authorization
 	input := map[string]interface{}{
 		"authorization": map[string]interface{}{
-			"from":        "0x1111111111111111111111111111111111111111",
-			"to":          "0x2222222222222222222222222222222222222222",
+			"from":        fromAddr.Hex(),
+			"to":          toAddr.Hex(),
 			"value":       "50000",
-			"validAfter":  float64(now - 3600),
-			"validBefore": float64(now + 3600),
-			"nonce":       "0x0000000000000000000000000000000000000000000000000000000000000001",
-			"v":           float64(27),
-			"r":           "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
-			"s":           "0xfedcba0987654321fedcba0987654321fedcba0987654321fedcba0987654321",
+			"validAfter":  float64(validAfter.Int64()),
+			"validBefore": float64(validBefore.Int64()),
+			"nonce":       common.BytesToHash(nonce[:]).Hex(),
+			"v":           float64(v),
+			"r":           common.BytesToHash(r.Bytes()).Hex(),
+			"s":           common.BytesToHash(s.Bytes()).Hex(),
 		},
 		"network": "base",
 	}
@@ -216,18 +239,39 @@ func TestSettlePayment_Execute_FacilitatorError(t *testing.T) {
 
 	tool := tools.NewSettlePaymentTool(srv)
 
+	// Generate valid signature for testing
+	privateKey, fromAddr, err := createTestPrivateKeyAndAddress()
+	if err != nil {
+		t.Fatalf("Failed to create test private key: %v", err)
+	}
+
+	toAddr := common.HexToAddress("0x2222222222222222222222222222222222222222")
+	value := big.NewInt(50000)
 	now := time.Now().Unix()
+	validAfter := big.NewInt(now - 3600)
+	validBefore := big.NewInt(now + 3600)
+	var nonce [32]byte
+	copy(nonce[:], []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2})
+
+	chainID := big.NewInt(8453) // Base mainnet
+	usdcContract := common.HexToAddress("0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913")
+
+	v, r, s, err := generateValidSignature(privateKey, fromAddr, toAddr, value, validAfter, validBefore, nonce, chainID, usdcContract)
+	if err != nil {
+		t.Fatalf("Failed to generate valid signature: %v", err)
+	}
+
 	input := map[string]interface{}{
 		"authorization": map[string]interface{}{
-			"from":        "0x1111111111111111111111111111111111111111",
-			"to":          "0x2222222222222222222222222222222222222222",
+			"from":        fromAddr.Hex(),
+			"to":          toAddr.Hex(),
 			"value":       "50000",
-			"validAfter":  float64(now - 3600),
-			"validBefore": float64(now + 3600),
-			"nonce":       "0x0000000000000000000000000000000000000000000000000000000000000002",
-			"v":           float64(27),
-			"r":           "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
-			"s":           "0xfedcba0987654321fedcba0987654321fedcba0987654321fedcba0987654321",
+			"validAfter":  float64(validAfter.Int64()),
+			"validBefore": float64(validBefore.Int64()),
+			"nonce":       common.BytesToHash(nonce[:]).Hex(),
+			"v":           float64(v),
+			"r":           common.BytesToHash(r.Bytes()).Hex(),
+			"s":           common.BytesToHash(s.Bytes()).Hex(),
 		},
 		"network": "base",
 	}
@@ -289,18 +333,39 @@ func TestSettlePayment_Execute_Idempotency(t *testing.T) {
 
 	tool := tools.NewSettlePaymentTool(srv)
 
+	// Generate valid signature for testing
+	privateKey, fromAddr, err := createTestPrivateKeyAndAddress()
+	if err != nil {
+		t.Fatalf("Failed to create test private key: %v", err)
+	}
+
+	toAddr := common.HexToAddress("0x2222222222222222222222222222222222222222")
+	value := big.NewInt(50000)
 	now := time.Now().Unix()
+	validAfter := big.NewInt(now - 3600)
+	validBefore := big.NewInt(now + 3600)
+	var nonce [32]byte
+	copy(nonce[:], []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3})
+
+	chainID := big.NewInt(8453) // Base mainnet
+	usdcContract := common.HexToAddress("0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913")
+
+	v, r, s, err := generateValidSignature(privateKey, fromAddr, toAddr, value, validAfter, validBefore, nonce, chainID, usdcContract)
+	if err != nil {
+		t.Fatalf("Failed to generate valid signature: %v", err)
+	}
+
 	input := map[string]interface{}{
 		"authorization": map[string]interface{}{
-			"from":        "0x1111111111111111111111111111111111111111",
-			"to":          "0x2222222222222222222222222222222222222222",
+			"from":        fromAddr.Hex(),
+			"to":          toAddr.Hex(),
 			"value":       "50000",
-			"validAfter":  float64(now - 3600),
-			"validBefore": float64(now + 3600),
-			"nonce":       "0x0000000000000000000000000000000000000000000000000000000000000003",
-			"v":           float64(27),
-			"r":           "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
-			"s":           "0xfedcba0987654321fedcba0987654321fedcba0987654321fedcba0987654321",
+			"validAfter":  float64(validAfter.Int64()),
+			"validBefore": float64(validBefore.Int64()),
+			"nonce":       common.BytesToHash(nonce[:]).Hex(),
+			"v":           float64(v),
+			"r":           common.BytesToHash(r.Bytes()).Hex(),
+			"s":           common.BytesToHash(s.Bytes()).Hex(),
 		},
 		"network": "base",
 	}
@@ -355,18 +420,39 @@ func TestSettlePayment_Execute_NetworkTimeout(t *testing.T) {
 
 	tool := tools.NewSettlePaymentTool(srv)
 
+	// Generate valid signature for testing
+	privateKey, fromAddr, err := createTestPrivateKeyAndAddress()
+	if err != nil {
+		t.Fatalf("Failed to create test private key: %v", err)
+	}
+
+	toAddr := common.HexToAddress("0x2222222222222222222222222222222222222222")
+	value := big.NewInt(50000)
 	now := time.Now().Unix()
+	validAfter := big.NewInt(now - 3600)
+	validBefore := big.NewInt(now + 3600)
+	var nonce [32]byte
+	copy(nonce[:], []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4})
+
+	chainID := big.NewInt(8453) // Base mainnet
+	usdcContract := common.HexToAddress("0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913")
+
+	v, r, s, err := generateValidSignature(privateKey, fromAddr, toAddr, value, validAfter, validBefore, nonce, chainID, usdcContract)
+	if err != nil {
+		t.Fatalf("Failed to generate valid signature: %v", err)
+	}
+
 	input := map[string]interface{}{
 		"authorization": map[string]interface{}{
-			"from":        "0x1111111111111111111111111111111111111111",
-			"to":          "0x2222222222222222222222222222222222222222",
+			"from":        fromAddr.Hex(),
+			"to":          toAddr.Hex(),
 			"value":       "50000",
-			"validAfter":  float64(now - 3600),
-			"validBefore": float64(now + 3600),
-			"nonce":       "0x0000000000000000000000000000000000000000000000000000000000000004",
-			"v":           float64(27),
-			"r":           "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
-			"s":           "0xfedcba0987654321fedcba0987654321fedcba0987654321fedcba0987654321",
+			"validAfter":  float64(validAfter.Int64()),
+			"validBefore": float64(validBefore.Int64()),
+			"nonce":       common.BytesToHash(nonce[:]).Hex(),
+			"v":           float64(v),
+			"r":           common.BytesToHash(r.Bytes()).Hex(),
+			"s":           common.BytesToHash(s.Bytes()).Hex(),
 		},
 		"network": "base",
 	}
@@ -415,18 +501,39 @@ func TestSettlePayment_JSONOutput(t *testing.T) {
 
 	tool := tools.NewSettlePaymentTool(srv)
 
+	// Generate valid signature for testing
+	privateKey, fromAddr, err := createTestPrivateKeyAndAddress()
+	if err != nil {
+		t.Fatalf("Failed to create test private key: %v", err)
+	}
+
+	toAddr := common.HexToAddress("0x2222222222222222222222222222222222222222")
+	value := big.NewInt(50000)
 	now := time.Now().Unix()
+	validAfter := big.NewInt(now - 3600)
+	validBefore := big.NewInt(now + 3600)
+	var nonce [32]byte
+	copy(nonce[:], []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5})
+
+	chainID := big.NewInt(8453) // Base mainnet
+	usdcContract := common.HexToAddress("0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913")
+
+	v, r, s, err := generateValidSignature(privateKey, fromAddr, toAddr, value, validAfter, validBefore, nonce, chainID, usdcContract)
+	if err != nil {
+		t.Fatalf("Failed to generate valid signature: %v", err)
+	}
+
 	input := map[string]interface{}{
 		"authorization": map[string]interface{}{
-			"from":        "0x1111111111111111111111111111111111111111",
-			"to":          "0x2222222222222222222222222222222222222222",
+			"from":        fromAddr.Hex(),
+			"to":          toAddr.Hex(),
 			"value":       "50000",
-			"validAfter":  float64(now - 3600),
-			"validBefore": float64(now + 3600),
-			"nonce":       "0x0000000000000000000000000000000000000000000000000000000000000005",
-			"v":           float64(27),
-			"r":           "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
-			"s":           "0xfedcba0987654321fedcba0987654321fedcba0987654321fedcba0987654321",
+			"validAfter":  float64(validAfter.Int64()),
+			"validBefore": float64(validBefore.Int64()),
+			"nonce":       common.BytesToHash(nonce[:]).Hex(),
+			"v":           float64(v),
+			"r":           common.BytesToHash(r.Bytes()).Hex(),
+			"s":           common.BytesToHash(s.Bytes()).Hex(),
 		},
 		"network": "base",
 	}

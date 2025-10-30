@@ -24,7 +24,9 @@
       "Bash(go doc:*)",
       "Bash([ -d \"/home/lessuseless/Projects/Agents-Notary-speckit/mcp-servers/x402-mcp-server/tests/integration\" ])",
       "Bash(jobs:*)",
-      "Read(//home/lessuseless/.claude/projects/**)"
+      "Read(//home/lessuseless/.claude/projects/**)",
+      "Bash(xargs:*)",
+      "Bash(awk:*)"
     ],
     "deny": [],
     "ask": []

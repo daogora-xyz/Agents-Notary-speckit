@@ -44,7 +44,7 @@ func (t *CreatePaymentRequirementTool) Schema() interface{} {
 			"network": map[string]interface{}{
 				"type":        "string",
 				"description": "Blockchain network for payment",
-				"enum":        []string{"base", "base-sepolia", "arbitrum"},
+				"enum":        []interface{}{"base", "base-sepolia", "arbitrum"},
 			},
 			"resource": map[string]interface{}{
 				"type":        "string",
@@ -60,7 +60,7 @@ func (t *CreatePaymentRequirementTool) Schema() interface{} {
 				"default":     "application/json",
 			},
 		},
-		"required": []string{"amount", "network", "resource", "description"},
+		"required": []interface{}{"amount", "network"},
 	}
 }
 
@@ -77,14 +77,16 @@ func (t *CreatePaymentRequirementTool) Execute(args map[string]interface{}) (int
 		return nil, fmt.Errorf("network must be a string")
 	}
 
+	// Extract optional resource with default
 	resource, ok := args["resource"].(string)
-	if !ok {
-		return nil, fmt.Errorf("resource must be a string")
+	if !ok || resource == "" {
+		resource = "https://api.example.com/resource"
 	}
 
+	// Extract optional description with default
 	description, ok := args["description"].(string)
-	if !ok {
-		return nil, fmt.Errorf("description must be a string")
+	if !ok || description == "" {
+		description = "Payment requirement"
 	}
 
 	// Extract optional mime_type with default
