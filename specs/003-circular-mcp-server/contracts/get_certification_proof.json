@@ -1,0 +1,122 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "get_certification_proof",
+  "description": "Generates a verifiable certification proof for an executed transaction. The proof includes the block ID, timestamp, and blockchain explorer URL, providing cryptographic evidence that data was certified at a specific time. This proof can be shared with external parties for verification.",
+  "type": "object",
+  "properties": {
+    "transaction_id": {
+      "type": "string",
+      "description": "The unique transaction identifier for an executed certification transaction (must have status = 'Executed'). Obtain from certify_data tool output.",
+      "minLength": 1,
+      "examples": [
+        "tx_abc123def456",
+        "0x1234567890abcdef"
+      ]
+    },
+    "network": {
+      "type": "string",
+      "description": "The Circular Protocol network where the transaction was executed (must match network used in certify_data).",
+      "enum": ["testnet", "mainnet"],
+      "default": "testnet"
+    },
+    "include_data": {
+      "type": "boolean",
+      "description": "If true, includes the original certified data in the proof (hex-encoded). If false, proof contains only transaction metadata.",
+      "default": false
+    }
+  },
+  "required": ["transaction_id", "network"],
+  "additionalProperties": false,
+  "examples": [
+    {
+      "transaction_id": "tx_abc123def456",
+      "network": "testnet",
+      "include_data": true
+    },
+    {
+      "transaction_id": "0x1234567890abcdef",
+      "network": "mainnet",
+      "include_data": false
+    }
+  ],
+  "output": {
+    "description": "Returns a certification proof with all verification details",
+    "type": "object",
+    "properties": {
+      "transaction_id": {
+        "type": "string",
+        "description": "The certification transaction identifier"
+      },
+      "block_id": {
+        "type": "string",
+        "description": "Unique identifier of the block containing the transaction"
+      },
+      "timestamp": {
+        "type": "string",
+        "description": "Block timestamp proving when certification occurred (Circular Protocol format: YYYY:MM:DD-HH:MM:SS)"
+      },
+      "block_height": {
+        "type": "integer",
+        "description": "Block number/height (optional, for additional context)",
+        "minimum": 0
+      },
+      "explorer_url": {
+        "type": "string",
+        "format": "uri",
+        "description": "Direct link to view transaction on Circular Protocol blockchain explorer"
+      },
+      "network": {
+        "type": "string",
+        "description": "The network where certification was recorded (testnet or mainnet)"
+      },
+      "certified_data": {
+        "type": "string",
+        "description": "Hex-encoded original data that was certified (only if include_data = true)"
+      },
+      "sender": {
+        "type": "string",
+        "description": "Wallet address that submitted the certification transaction"
+      }
+    },
+    "required": ["transaction_id", "block_id", "timestamp", "explorer_url", "network"]
+  },
+  "errors": [
+    {
+      "type": "INVALID_INPUT",
+      "status_code": 400,
+      "message": "Transaction not yet executed (status must be 'Executed')",
+      "retry": true,
+      "retry_suggestion": "Wait for transaction to reach Executed status using get_transaction_status"
+    },
+    {
+      "type": "INVALID_INPUT",
+      "status_code": 400,
+      "message": "Transaction ID not found on blockchain",
+      "retry": false
+    },
+    {
+      "type": "TRANSACTION_FAILED",
+      "status_code": 400,
+      "message": "Cannot generate proof for failed transaction",
+      "retry": false
+    },
+    {
+      "type": "API_UNAVAILABLE",
+      "status_code": 503,
+      "message": "Circular Protocol API is temporarily unavailable",
+      "retry": true,
+      "retry_suggestion": "Retry after 30 seconds"
+    }
+  ],
+  "notes": [
+    "Transaction must have reached 'Executed' status before proof can be generated",
+    "Use get_transaction_status tool first to ensure transaction is executed",
+    "The explorer URL format: https://circularlabs.io/Explorer?network={network}&tx={tx_id}",
+    "External parties can verify the proof by visiting the explorer URL",
+    "Proof is cryptographically verifiable: block_id + timestamp are immutable on blockchain",
+    "Testnet and mainnet use different explorer URLs for proper verification",
+    "The proof includes RFC3339 timestamp for human-readable time representation",
+    "certified_data field is optional to reduce proof size when data is already known to recipient",
+    "Proof format is JSON for easy integration with external verification systems"
+  ]
+}

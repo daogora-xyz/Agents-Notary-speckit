@@ -1,0 +1,2093 @@
+This file is a merged representation of the entire codebase, combined into a single document by Repomix.
+
+<file_summary>
+This section contains a summary of this file.
+
+<purpose>
+This file contains a packed representation of the entire repository's contents.
+It is designed to be easily consumable by AI systems for analysis, code review,
+or other automated processes.
+</purpose>
+
+<file_format>
+The content is organized as follows:
+1. This summary section
+2. Repository information
+3. Directory structure
+4. Repository files (if enabled)
+5. Multiple file entries, each consisting of:
+  - File path as an attribute
+  - Full contents of the file
+</file_format>
+
+<usage_guidelines>
+- This file should be treated as read-only. Any changes should be made to the
+  original repository files, not this packed version.
+- When processing this file, use the file path to distinguish
+  between different files in the repository.
+- Be aware that this file may contain sensitive information. Handle it with
+  the same level of security as you would the original repository.
+</usage_guidelines>
+
+<notes>
+- Some files may have been excluded based on .gitignore rules and Repomix's configuration
+- Binary files are not included in this packed representation. Please refer to the Repository Structure section for a complete list of file paths, including binary files
+- Files matching patterns in .gitignore are excluded
+- Files matching default ignore patterns are excluded
+- Files are sorted by Git change count (files with more changes are at the bottom)
+</notes>
+
+</file_summary>
+
+<directory_structure>
+examples/
+  simple_certificate_submission.go
+pkg/
+  utils/
+    utils_test.go
+    utils.go
+  account_test.go
+  account.go
+  certificate_test.go
+  certificate.go
+  common_test.go
+  common.go
+tests/
+  e2e/
+    e2e_test.go
+  integration/
+    integration_test.go
+.gitignore
+env.example
+go.mod
+LICENSE
+main.go
+README.md
+</directory_structure>
+
+<files>
+This section contains the contents of the repository's files.
+
+<file path="examples/simple_certificate_submission.go">
+package main
+
+import (
+	"fmt"
+	"log"
+	"os"
+
+	circular_enterprise_apis "circular_enterprise_apis/pkg"
+
+	"github.com/joho/godotenv"
+)
+
+func main() {
+	// Load environment variables from .env file
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatalf("Error loading .env file: %v", err)
+	}
+
+	// Retrieve environment variables
+	privateKey := os.Getenv("CIRCULAR_PRIVATE_KEY")
+	address := os.Getenv("CIRCULAR_ADDRESS")
+
+	if privateKey == "" || address == "" {
+		log.Fatal("Please set CIRCULAR_PRIVATE_KEY and CIRCULAR_ADDRESS in your .env file")
+	}
+
+	// Initialize CEPAccount
+	account := circular_enterprise_apis.NewCEPAccount()
+	if !account.Open(address) {
+		log.Fatalf("Failed to open account: %s", account.LastError)
+	}
+
+	// Set network (e.g., "testnet")
+	nagURL := account.SetNetwork("testnet")
+	if nagURL == "" {
+		log.Fatalf("Failed to set network: %s", account.LastError)
+	}
+	fmt.Printf("Connected to NAG: %s\n", nagURL)
+
+	// Update account nonce
+	if !account.UpdateAccount() {
+		log.Fatalf("Failed to update account: %s", account.LastError)
+	}
+	fmt.Printf("Account nonce updated. Current Nonce: %d\n", account.Nonce)
+
+	// Create and submit a certificate
+	certificateData := "Hello, Circular Protocol!"
+	account.SubmitCertificate(certificateData, privateKey)
+	if account.LastError != "" {
+		log.Fatalf("Failed to submit certificate: %s", account.LastError)
+	}
+	fmt.Printf("Certificate submitted. Latest Transaction ID: %s\n", account.LatestTxID)
+
+	// Poll for transaction outcome
+	fmt.Println("Polling for transaction outcome...")
+	outcome := account.GetTransactionOutcome(account.LatestTxID, 60, 5) // 60s timeout, 5s interval
+	if outcome == nil {
+		log.Fatalf("Failed to get transaction outcome: %s", account.LastError)
+	}
+	fmt.Printf("Transaction Outcome: %+v\n", outcome)
+
+	// Close the account
+	account.Close()
+	fmt.Println("Account closed.")
+}
+</file>
+
+<file path="pkg/utils/utils_test.go">
+package utils
+
+import (
+	"testing"
+)
+
+func TestPadNumber(t *testing.T) {
+	tests := []struct {
+		num      int
+		expected string
+	}{
+		{5, "05"},
+		{10, "10"},
+		{0, "00"},
+		{123, "123"},
+		{-1, "-1"},
+	}
+
+	for _, test := range tests {
+		actual := PadNumber(test.num)
+		if actual != test.expected {
+			t.Errorf("PadNumber(%d): Expected %s, Got %s", test.num, test.expected, actual)
+		}
+	}
+}
+
+/*
+func TestGetFormattedTimestamp(t *testing.T) {
+	expectedFormat := "2006:01:02-15:04:05"
+	// Get the current time and format it as expected
+	now := time.Now()
+	expected := now.Format(expectedFormat)
+
+	actual := GetFormattedTimestamp()
+
+	// We can't directly compare to a fixed string because time.Now() changes.
+	// Instead, we check if the format is correct and if it's close to the current time.
+	// A simple check for length and a basic format match is sufficient for this test.
+	if len(actual) != len(expected) {
+		t.Errorf("GetFormattedTimestamp(): Expected length %d, Got length %d. Actual: %s", len(expected), len(actual), actual)
+	}
+
+	// Further check: try parsing the actual string to ensure it's a valid time in the expected format
+	parsedTime, err := time.Parse(expectedFormat, actual)
+	if err != nil {
+		t.Errorf("GetFormattedTimestamp(): Could not parse actual timestamp %s with format %s: %v", actual, expectedFormat, err)
+	}
+
+	// Check if the parsed time is within a reasonable range of 'now'
+	if now.Sub(parsedTime) > 5*time.Second || parsedTime.Sub(now) > 5*time.Second {
+		t.Errorf("GetFormattedTimestamp(): Actual timestamp %s is not close to current time %s", actual, now.Format(expectedFormat))
+	}
+}
+*/
+
+func TestHexFix(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected string
+	}{
+		{"0xabc", "0abc"},
+		{"1a2b3c", "1a2b3c"},
+		{"DEF", "0def"},
+		{"0XfF", "ff"},
+		{"", ""},
+		{"0x12345", "012345"},
+		{"abcDEF", "abcdef"},
+		{"AbCdEf", "abcdef"},
+		{"0x", ""},
+		{"0X", ""},
+		{"0", "00"},
+		{"A", "0a"},
+		// Add a nil case (Go string zero value is empty string)
+		{func() string { var s string; return s }(), ""},
+	}
+
+	for _, test := range tests {
+		actual := HexFix(test.input)
+		if actual != test.expected {
+			t.Errorf("hexFix(\"%s\"): Expected %s, Got %s",
+				test.input, test.expected, actual)
+		}
+	}
+}
+
+func TestStringToHex(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected string
+	}{
+		{"", ""},
+		{"Hello", "48656C6C6F"},
+		{"你好", "E4BDA0E5A5BD"},
+		{"😊", "F09F988A"},
+		{"Test\n123", "546573740A313233"},
+		{"\u0000Byte", "0042797465"},
+		{"abc", "616263"},
+		{"ABC", "414243"},
+		{func() string { var s string; return s }(), ""},
+	}
+
+	for _, test := range tests {
+		actual := StringToHex(test.input)
+		if actual != test.expected {
+			t.Errorf("stringToHex(\"%s\"): Expected %s, Got %s",
+				test.input, test.expected, actual)
+		}
+	}
+}
+
+func TestHexToString(t *testing.T) {
+	tests := []struct {
+		input       string
+		expectedStr string
+	}{
+		{"48656c6c6f", "Hello"},
+		{"e4bda0e5a5bd", "你好"},
+		{"", ""},
+		{"48656C6C6F", "Hello"},
+		{"48656c6C6f", "Hello"},
+		{"0x48656c6c6f", "Hello"},
+		{"0X48656c6c6f", "Hello"},
+		{"48656c6c6fg", ""}, // Invalid hex, should return empty string
+		{"48656c 6c6f", ""}, // Invalid hex, should return empty string
+		{"48656c6c6", ""},   // Odd length, should return empty string
+		{"0x48656c6c6", ""}, // Odd length, should return empty string
+		{"000000", "\x00\x00\x00"},
+		{func() string { var s string; return s }(), ""},
+	}
+
+	for _, test := range tests {
+		actualStr := HexToString(test.input)
+		if actualStr != test.expectedStr {
+			t.Errorf("HexToString(\"%s\"): Expected string %q, Got %q",
+				test.input, test.expectedStr, actualStr)
+		}
+	}
+}
+</file>
+
+<file path="pkg/utils/utils.go">
+package utils
+
+import (
+	"encoding/hex"
+	"strconv"
+	"strings"
+	"time"
+)
+
+// PadNumber converts a single-digit integer (0-9) into a two-digit string by prepending a "0".
+// For example, 5 becomes "05". Numbers 10 and greater are converted directly to their string representation.
+// This function is useful for formatting time components like months, days, hours, minutes, and seconds
+// to ensure a consistent two-digit display.
+//
+// Parameters:
+//   - num: The integer to be padded.
+//
+// Returns:
+//
+//	The padded string representation of the number.
+func PadNumber(num int) string {
+	if num >= 0 && num < 10 {
+		return "0" + strconv.Itoa(num)
+	}
+	return strconv.Itoa(num)
+}
+
+// GetFormattedTimestamp generates a UTC timestamp string in the format "YYYY:MM:DD-HH:MM:SS".
+// This format is specifically designed for internal use within the Circular Enterprise APIs
+// to ensure consistent time representation across various operations, such as transaction
+// timestamping and certificate creation.
+//
+// Returns:
+//
+//	A string representing the current UTC timestamp in "YYYY:MM:DD-HH:MM:SS" format.
+func GetFormattedTimestamp() string {
+	return time.Now().UTC().Format("2006:01:02-15:04:05")
+}
+
+// HexFix normalizes and sanitizes a given hexadecimal string to a consistent format.
+// It performs the following operations:
+//   - Handles empty or null input strings by returning an empty string.
+//   - Removes common "0x" or "0X" prefixes if present.
+//   - Converts all hexadecimal characters to lowercase for uniformity.
+//   - Ensures the resulting hexadecimal string has an even number of characters
+//     by prepending a "0" if its length is odd. This is crucial for correct
+//     byte-level decoding.
+//
+// Parameters:
+//   - hexStr: The input string to be normalized, which may or may not be a valid hexadecimal string.
+//
+// Returns:
+//
+//	The cleaned, normalized, and lowercase hexadecimal string, ready for further processing or decoding.
+func HexFix(hexStr string) string {
+	if hexStr == "" {
+		return ""
+	}
+
+	// Remove "0x" or "0X" prefix
+	if strings.HasPrefix(hexStr, "0x") || strings.HasPrefix(hexStr, "0X") {
+		hexStr = hexStr[2:]
+	}
+
+	// Convert to lower
+	hexStr = strings.ToLower(hexStr)
+
+	// Pad with '0' if length is odd
+	if len(hexStr)%2 != 0 {
+		hexStr = "0" + hexStr
+	}
+
+	return hexStr
+}
+
+// StringToHex converts a standard UTF-8 string into its hexadecimal representation.
+// Each character in the input string is first converted to its UTF-8 byte sequence,
+// and then each byte is encoded as two hexadecimal characters (0-F).
+// The resulting hexadecimal string is always in uppercase.
+// This function is essential for preparing string data for cryptographic operations
+// or for storage in systems that require hexadecimal encoding.
+//
+// Parameters:
+//   - s: The input string to be converted to hexadecimal.
+//
+// Returns:
+//
+//	The hexadecimal representation of the input string in uppercase.
+//
+// Example:
+//
+//	"Hello" -> "48656C6C6F"
+func StringToHex(s string) string {
+	// Use standard library to encode bytes to hex string
+	hexEncoded := make([]byte, hex.EncodedLen(len(s)))
+	hex.Encode(hexEncoded, []byte(s))
+
+	// Convert to uppercase
+	return strings.ToUpper(string(hexEncoded))
+}
+
+// HexToString converts a hexadecimal string back into its original UTF-8 string representation.
+// The function is robust, handling various input formats:
+//   - It is case-insensitive (e.g., "48" and "4h" are treated the same).
+//   - It gracefully handles optional "0x" or "0X" prefixes, removing them before decoding.
+//   - If the input hexadecimal string contains invalid characters or has an odd length
+//     (which would result in an incomplete byte), the function will return an empty string.
+//
+// This behavior aligns with the error handling in the corresponding Java implementation,
+// ensuring consistency across different API versions.
+//
+// Parameters:
+//   - hexStr: The hexadecimal string to be converted back to a regular string.
+//
+// Returns:
+//
+//	The original string representation of the hexadecimal input. Returns an empty string
+//	if the input is invalid or cannot be decoded.
+//
+// Example:
+//
+//	"48656C6C6F" -> "Hello"
+//	"0x48656c6c6f" -> "Hello"
+func HexToString(hexStr string) string {
+	// Handle empty string after stripping prefix
+	if hexStr == "" {
+		return ""
+	}
+
+	// Remove "0x" or "0X" prefix if present
+	if strings.HasPrefix(hexStr, "0x") || strings.HasPrefix(hexStr, "0X") {
+		hexStr = hexStr[2:]
+	}
+
+	// Convert to lowercase to ensure consistent input for hex.DecodeString
+	// (though hex.DecodeString is case-insensitive, this can prevent subtle issues)
+	hexStr = strings.ToLower(hexStr)
+
+	// Decode the hex string to bytes
+	decodedBytes, err := hex.DecodeString(hexStr)
+	if err != nil {
+		return "" // Return empty string on error, matching Java's behavior
+	}
+
+	return string(decodedBytes)
+}
+</file>
+
+<file path="pkg/account_test.go">
+package circular_enterprise_apis
+
+import (
+	"fmt"
+	"net/http"
+	"net/http/httptest"
+	"testing"
+)
+
+func TestSetNetwork(t *testing.T) {
+	testCases := []struct {
+		name           string
+		network        string
+		mockResponse   string
+		mockStatusCode int
+		expectedNAGURL string
+		expectError    bool
+	}{
+		{
+			name:           "testnet",
+			network:        "testnet",
+			mockResponse:   "{\"status\":\"success\", \"url\":\"https://nag.circularlabs.io/NAG.php?cep=\", \"message\":\"OK\"}",
+			mockStatusCode: http.StatusOK,
+			expectedNAGURL: "https://nag.circularlabs.io/NAG.php?cep=",
+			expectError:    false,
+		},
+		{
+            name:           "devnet",
+            network:        "devnet",
+            mockResponse:   "{\"status\":\"success\", \"url\":\"https://nag.circularlabs.io/NAG_DevNet.php?cep=\", \"message\":\"OK\"}",
+            mockStatusCode: http.StatusOK,
+            expectedNAGURL: "https://nag.circularlabs.io/NAG_DevNet.php?cep=",
+            expectError:    false,
+        },
+		{
+            name:           "mainnet",
+            network:        "mainnet",
+            mockResponse:   "{\"status\":\"success\", \"url\":\"https://nag.circularlabs.io/NAG.php?cep=\", \"message\":\"OK\"}",
+            mockStatusCode: http.StatusOK,
+            expectedNAGURL: "https://nag.circularlabs.io/NAG_Mainnet.php?cep=",
+            expectError:    false,
+        },
+		{
+			name:           "unsupported",
+			network:        "unsupported",
+			mockResponse:   "Unsupported Network",
+			mockStatusCode: http.StatusNotFound,
+			expectedNAGURL: "",
+			expectError:    true,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.WriteHeader(tc.mockStatusCode)
+				fmt.Fprint(w, tc.mockResponse)
+			}))
+			defer server.Close()
+
+			// Point the account to the mock server
+			acc := NewCEPAccount()
+			acc.NetworkURL = server.URL
+
+			// Call the function
+			returnedURL := acc.SetNetwork(tc.network)
+
+			if tc.expectError {
+				if returnedURL != "" {
+					t.Errorf("Expected empty URL on error, but got %s", returnedURL)
+				}
+				if acc.GetLastError() == "" {
+					t.Error("Expected an error, but LastError was not set")
+				}
+			} else {
+				if acc.GetLastError() != "" {
+					t.Errorf("Expected no error, but got: %s", acc.GetLastError())
+				}
+				if returnedURL != tc.expectedNAGURL {
+					t.Errorf("Expected returned URL to be %s, but got %s", tc.expectedNAGURL, returnedURL)
+				}
+				if acc.NAGURL != tc.expectedNAGURL {
+					t.Errorf("Expected acc.NAGURL to be set to %s, but got %s", tc.expectedNAGURL, acc.NAGURL)
+				}
+				if acc.NetworkNode != tc.network {
+					t.Errorf("Expected acc.NetworkNode to be %s, but got %s", tc.network, acc.NetworkNode)
+				}
+			}
+		})
+	}
+}
+</file>
+
+<file path="pkg/account.go">
+package circular_enterprise_apis
+
+import (
+	"bytes"
+	"context"
+	"crypto/sha256"
+	"encoding/hex"
+	"encoding/json"
+	"fmt"
+	"io"
+	"net/http"
+	"strconv"
+	"time"
+
+	"circular_enterprise_apis/pkg/utils"
+
+	"github.com/decred/dcrd/dcrec/secp256k1/v4"
+	"github.com/decred/dcrd/dcrec/secp256k1/v4/ecdsa"
+)
+
+// CEPAccount represents a client-side interface for interacting with the Circular Enterprise Protocol blockchain.
+// It encapsulates all necessary account information and provides methods for managing account state,
+// interacting with the Network Access Gateway (NAG), and performing blockchain operations such as
+// submitting certificates and querying transaction outcomes.
+type CEPAccount struct {
+	Address     string      // The blockchain address of the account.
+	PublicKey   string      // The public key associated with the account.
+	Info        interface{} // General information or metadata about the account.
+	CodeVersion string      // The version of the client library being used.
+	LastError   string      // Stores the last encountered error message, aligning with Java API behavior.
+	NAGURL      string      // The URL of the Network Access Gateway (NAG) for the currently configured network.
+	NetworkNode string      // Identifier for the specific network node being used (e.g., "testnet", "mainnet").
+	Blockchain  string      // The identifier of the blockchain being interacted with.
+	LatestTxID  string      // The ID of the most recently submitted transaction by this account.
+	Nonce       int64       // A unique, incrementing number used to prevent transaction replay attacks.
+	IntervalSec int         // The polling interval in seconds for transaction outcome checks.
+	NetworkURL  string      // The base URL for discovering network access gateways.
+}
+
+// NewCEPAccount is a factory function that creates and initializes a new CEPAccount instance.
+// It sets up the account with default values for the library version, network URLs,
+// blockchain, nonce, and transaction polling interval. This function should be used
+// to obtain a properly configured CEPAccount object before performing any operations.
+//
+// Returns:
+//
+//	A pointer to a newly initialized CEPAccount struct.
+func NewCEPAccount() *CEPAccount {
+	return &CEPAccount{
+		CodeVersion: LibVersion,
+		NetworkURL:  NetworkURL,
+		NAGURL:      DefaultNAG,
+		Blockchain:  DefaultChain,
+		Nonce:       0,
+		IntervalSec: 2, // Default polling interval
+	}
+}
+
+// GetLastError retrieves the last error message that occurred during an operation
+// performed by the CEPAccount instance. This method is provided for compatibility
+// and consistent error reporting across different API implementations (e.g., Java).
+//
+// Returns:
+//
+//	A string containing the last error message. Returns an empty string if no error
+//	has occurred since the last operation or since the account was initialized.
+func (a *CEPAccount) GetLastError() string {
+	return a.LastError
+}
+
+// Open initializes the CEPAccount with a specified blockchain address.
+// This method is a prerequisite for most other account operations.
+//
+// Parameters:
+//   - address: The blockchain address to associate with this account.
+//
+// Returns:
+//
+//	`true` if the address is successfully set, and `false` otherwise.
+//	If the address is empty, an error message is stored in `a.LastError`.
+func (a *CEPAccount) Open(address string) bool {
+	if address == "" {
+		a.LastError = "invalid address format"
+		return false
+	}
+	a.Address = address
+	return true
+}
+
+// Close securely clears all sensitive and operational data from the CEPAccount instance.
+// This includes the blockchain address, public key, network configurations,
+// and any cached transaction IDs or nonces. After calling Close, the account
+// must be re-opened using the Open method before it can be used again for
+// blockchain operations. This ensures data privacy and resets the account state.
+func (a *CEPAccount) Close() {
+	a.Address = ""
+	a.PublicKey = ""
+	a.Info = nil
+	a.NAGURL = ""
+	a.NetworkNode = ""
+	a.Blockchain = ""
+	a.LatestTxID = ""
+	a.Nonce = 0
+	a.IntervalSec = 0
+}
+
+// SetNetwork configures the CEPAccount to operate on a specific blockchain network.
+// It achieves this by querying a public endpoint to discover the appropriate
+// Network Access Gateway (NAG) URL for the given network identifier (e.g., "testnet", "mainnet").
+// The discovered NAG URL is then stored internally for subsequent API calls.
+//
+// Parameters:
+//   - network: A string identifier for the desired network (e.g., "devnet", "testnet", "mainnet").
+//
+// Returns:
+//
+//	The resolved NAG URL as a string if successful, or an empty string
+//	if there's an error during the network discovery process, with the error
+//	details stored in `a.LastError`.
+func (a *CEPAccount) SetNetwork(network string) string {
+	url, err := GetNAG(network)
+	if err != nil {
+		a.LastError = fmt.Sprintf("network discovery failed: %v", err)
+		return ""
+	}
+
+	a.NAGURL = url
+	a.NetworkNode = network
+	return url
+}
+
+// SetBlockchain explicitly sets the blockchain identifier for the CEPAccount.
+// This function allows overriding the default blockchain configured during initialization.
+//
+// Parameters:
+//   - chain: A valid blockchain address or identifier (e.g., a hexadecimal string)
+//     that the account will interact with for all subsequent operations.
+func (a *CEPAccount) SetBlockchain(chain string) {
+	a.Blockchain = chain
+}
+
+// UpdateAccount fetches the latest nonce for the account from the configured Network Access Gateway (NAG).
+// The nonce is a crucial component for preventing transaction replay attacks and ensuring
+// the sequential ordering of transactions from a given account. This method increments
+// the internal nonce value by one after a successful fetch, preparing it for the next transaction.
+//
+// Returns:
+//
+//	`true` if the nonce is successfully updated, and `false` otherwise.
+//	Any errors encountered during the network request or response parsing are stored in `a.LastError`.
+func (a *CEPAccount) UpdateAccount() bool {
+	if a.Address == "" {
+		a.LastError = "Account not open"
+		return false
+	}
+
+	requestData := map[string]string{
+		"Address":    utils.HexFix(a.Address),
+		"Version":    a.CodeVersion,
+		"Blockchain": utils.HexFix(a.Blockchain),
+	}
+
+	jsonData, err := json.Marshal(requestData)
+	if err != nil {
+		a.LastError = fmt.Sprintf("failed to marshal request data: %v", err)
+		return false
+	}
+
+	url := a.NAGURL + "Circular_GetWalletNonce_"
+	if a.NetworkNode != "" {
+		url += a.NetworkNode
+	}
+
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonData))
+	if err != nil {
+		a.LastError = fmt.Sprintf("failed to create request: %v", err)
+		return false
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	fmt.Printf("UpdateAccount: Request URL: %s\n", url)
+	fmt.Printf("UpdateAccount: Request Headers: %v\n", req.Header)
+	fmt.Printf("UpdateAccount: Request Body: %s\n", string(jsonData))
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		a.LastError = fmt.Sprintf("http request failed: %v", err)
+		return false
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		a.LastError = fmt.Sprintf("failed to read response body: %v", err)
+		return false
+	}
+
+	fmt.Printf("UpdateAccount: Response Status: %s\n", resp.Status)
+	fmt.Printf("UpdateAccount: Response Headers: %v\n", resp.Header)
+	fmt.Printf("UpdateAccount: Response Body: %s\n", string(body))
+
+	if resp.StatusCode != http.StatusOK {
+		a.LastError = fmt.Sprintf("network request failed with status: %s, body: %s", resp.Status, string(body))
+		return false
+	}
+
+	var responseData struct {
+		Result   int         `json:"Result"`
+		Response interface{} `json:"Response"`
+	}
+	if err := json.Unmarshal(body, &responseData); err != nil {
+		a.LastError = fmt.Sprintf("failed to decode response body: %v, body: %s", err, string(body))
+		fmt.Printf("UpdateAccount: Failed to decode response. Error: %v, Body: %s\n", err, string(body))
+		return false
+	}
+
+	fmt.Printf("UpdateAccount: Parsed Response - Result: %d, Response: %v\n", responseData.Result, responseData.Response)
+
+	switch responseData.Result {
+	case 200:
+		// If Result is 200, Response should be a struct with Nonce
+		var nonceResponse struct {
+			Nonce int `json:"Nonce"`
+		}
+		responseBytes, err := json.Marshal(responseData.Response)
+		if err != nil {
+			a.LastError = fmt.Sprintf("failed to marshal response data: %v", err)
+			return false
+		}
+		if err := json.Unmarshal(responseBytes, &nonceResponse); err != nil {
+			a.LastError = fmt.Sprintf("failed to decode nonce response: %v, body: %s", err, string(responseBytes))
+			return false
+		}
+		a.Nonce = int64(nonceResponse.Nonce) + 1
+		return true
+	case 114:
+		a.LastError = "Rejected: Invalid Blockchain"
+		return false
+	case 115:
+		a.LastError = "Rejected: Insufficient balance"
+		return false
+	default:
+		// If Result is not 200, Response should be a string error message
+		if errMsg, ok := responseData.Response.(string); ok {
+			a.LastError = fmt.Sprintf("failed to update account: %s", errMsg)
+		} else {
+			a.LastError = "failed to update account: unknown error response"
+		}
+		return false
+	}
+}
+
+// signData generates a cryptographic signature for a given message using the provided private key.
+// This function is an internal helper used by other methods (e.g., SubmitCertificate)
+// to ensure the authenticity and integrity of data submitted to the blockchain.
+// The message is first hashed using SHA-256, and then signed using the secp256k1 elliptic curve
+// digital signature algorithm.
+//
+// Parameters:
+//   - message: The data (typically a hash or transaction ID) to be signed.
+//   - privateKeyHex: The private key of the account, in hexadecimal format, used for signing.
+//
+// Returns:
+//
+//	The hexadecimal representation of the signature.
+//	An error if the private key is invalid or the account is not open.
+func (a *CEPAccount) signData(message string, privateKeyHex string) (string, error) {
+	if a.Address == "" {
+		return "", fmt.Errorf("account is not open")
+	}
+
+	privateKeyBytes, err := hex.DecodeString(utils.HexFix(privateKeyHex))
+	if err != nil {
+		return "", fmt.Errorf("invalid private key hex string: %w", err)
+	}
+
+	privateKey := secp256k1.PrivKeyFromBytes(privateKeyBytes)
+	hash := sha256.Sum256([]byte(message))
+	signature := ecdsa.Sign(privateKey, hash[:])
+
+	return hex.EncodeToString(signature.Serialize()), nil
+}
+
+// SubmitCertificate creates a data certificate, signs it with the provided private key,
+// and then submits it to the blockchain via the configured Network Access Gateway (NAG).
+// This function encapsulates the entire process of preparing the certificate payload,
+// generating a unique transaction ID, signing the transaction, and sending it to the network.
+// It updates the account's `LatestTxID` upon successful submission and increments the nonce.
+//
+// Parameters:
+//   - pdata: The primary data content of the certificate to be submitted.
+//   - privateKeyHex: The private key of the account, in hexadecimal format, used for signing the transaction.
+//
+// Returns:
+//
+//	This function does not explicitly return a value. Any errors during the process
+//	(e.g., account not open, signing failure, network issues, or non-200 response from the server)
+//	are captured and stored in `a.LastError`.
+func (a *CEPAccount) SubmitCertificate(pdata string, privateKeyHex string) {
+	if a.Address == "" {
+		a.LastError = "Account is not open"
+		return
+	}
+
+	payloadObject := map[string]string{
+		"Action": "CP_CERTIFICATE",
+		"Data":   utils.StringToHex(pdata),
+	}
+	jsonStr, _ := json.Marshal(payloadObject)
+	payload := utils.StringToHex(string(jsonStr))
+	timestamp := utils.GetFormattedTimestamp()
+
+	strToHash := utils.HexFix(a.Blockchain) + utils.HexFix(a.Address) + utils.HexFix(a.Address) + payload + fmt.Sprintf("%d", a.Nonce) + timestamp
+	hash := sha256.Sum256([]byte(strToHash))
+	id := hex.EncodeToString(hash[:])
+
+	signature, err := a.signData(id, privateKeyHex)
+	if err != nil {
+		a.LastError = fmt.Sprintf("failed to sign data: %v", err)
+		return
+	}
+
+	requestData := map[string]string{
+		"ID":         id,
+		"From":       utils.HexFix(a.Address),
+		"To":         utils.HexFix(a.Address),
+		"Timestamp":  timestamp,
+		"Payload":    payload,
+		"Nonce":      fmt.Sprintf("%d", a.Nonce),
+		"Signature":  signature,
+		"Blockchain": utils.HexFix(a.Blockchain),
+		"Type":       "C_TYPE_CERTIFICATE",
+		"Version":    a.CodeVersion,
+	}
+
+	jsonData, err := json.Marshal(requestData)
+	if err != nil {
+		a.LastError = fmt.Sprintf("failed to marshal request data: %v", err)
+		return
+	}
+
+	url := a.NAGURL + "Circular_AddTransaction_"
+	if a.NetworkNode != "" {
+		url += a.NetworkNode
+	}
+
+	resp, err := http.Post(url, "application/json", bytes.NewBuffer(jsonData))
+	if err != nil {
+		a.LastError = fmt.Sprintf("failed to submit certificate: %v", err)
+		return
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		a.LastError = fmt.Sprintf("failed to read response body: %v", err)
+		return
+	}
+
+	fmt.Printf("SubmitCertificate: Response Status: %s\n", resp.Status)
+	fmt.Printf("SubmitCertificate: Response Headers: %v\n", resp.Header)
+	fmt.Printf("SubmitCertificate: Response Body: %s\n", string(body))
+
+	if resp.StatusCode != http.StatusOK {
+		a.LastError = fmt.Sprintf("network returned an error - status: %s, body: %s", resp.Status, string(body))
+		return
+	}
+
+	var responseMap map[string]interface{}
+	if err := json.Unmarshal(body, &responseMap); err != nil {
+		a.LastError = fmt.Sprintf("failed to decode response JSON: %v", err)
+		return
+	}
+
+	if result, ok := responseMap["Result"].(float64); ok && result == 200 {
+		// Save our generated transaction ID
+		a.LatestTxID = id
+		a.Nonce++ // Increment nonce for the next transaction
+	} else {
+		// Extract the error message from the response if available
+		if errMsg, ok := responseMap["Response"].(string); ok {
+			a.LastError = fmt.Sprintf("certificate submission failed: %s", errMsg)
+		} else {
+			a.LastError = "certificate submission failed with non-200 result code"
+		}
+	}
+
+}
+
+// GetTransaction retrieves the details of a specific transaction using its block ID and transaction ID.
+// This function acts as a convenience wrapper around `getTransactionByID`, specifically
+// searching for the transaction within the confines of a single, designated block.
+// It is useful when the exact block where a transaction was recorded is known.
+//
+// Parameters:
+//   - blockID: The identifier of the block where the transaction is expected to be found.
+//   - transactionID: The unique identifier of the transaction.
+//
+// Returns:
+//
+//	A map[string]interface{} containing the transaction details if found.
+//	Returns `nil` if the `blockID` is empty or invalid, or if the transaction cannot be retrieved.
+//	An error message is stored in `a.LastError` in case of failure.
+func (a *CEPAccount) GetTransaction(blockID string, transactionID string) map[string]interface{} {
+	if blockID == "" {
+		a.LastError = "blockID cannot be empty"
+		return nil
+	}
+	// This function is a convenience wrapper around getTransactionByID,
+	// searching within a single, specific block.
+	startBlock, err := strconv.ParseInt(blockID, 10, 64)
+	if err != nil {
+		a.LastError = fmt.Sprintf("invalid blockID: %v", err)
+		return nil
+	}
+	result, err := a.getTransactionByID(transactionID, startBlock, startBlock)
+	if err != nil {
+		a.LastError = fmt.Sprintf("failed to get transaction by ID: %v", err)
+		return nil
+	}
+	return result
+}
+
+// getTransactionByID retrieves the detailed information for a specific transaction by its ID.
+// It allows for searching within a specified range of blocks (`startBlock` to `endBlock`).
+// This function communicates with the configured Network Access Gateway (NAG) to fetch
+// transaction data.
+//
+// Parameters:
+//   - transactionID: The unique identifier of the transaction to retrieve.
+//   - startBlock: The starting block number for the search range.
+//   - endBlock: The ending block number for the search range.
+//
+// Returns:
+//
+//	A map containing the transaction details if successful.
+//	An error if the network is not set, the request data cannot be marshaled,
+//	the HTTP request fails, the network returns a non-OK status, or the response
+//	JSON cannot be decoded.
+func (a *CEPAccount) getTransactionByID(transactionID string, startBlock, endBlock int64) (map[string]interface{}, error) {
+	if a.NAGURL == "" {
+		return nil, fmt.Errorf("network is not set")
+	}
+
+	requestData := map[string]string{
+		"Blockchain": utils.HexFix(a.Blockchain),
+		"ID":         utils.HexFix(transactionID),
+		"Start":      fmt.Sprintf("%d", startBlock),
+		"End":        fmt.Sprintf("%d", endBlock),
+		"Version":    a.CodeVersion,
+	}
+
+	jsonData, err := json.Marshal(requestData)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal request data: %w", err)
+	}
+
+	url := a.NAGURL + "Circular_GetTransactionbyID_"
+	if a.NetworkNode != "" {
+		url += a.NetworkNode
+	}
+
+	resp, err := http.Post(url, "application/json", bytes.NewBuffer(jsonData))
+	if err != nil {
+		return nil, fmt.Errorf("http post request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read response body: %w", err)
+	}
+
+	fmt.Printf("getTransactionByID: Response Status: %s\n", resp.Status)
+	fmt.Printf("getTransactionByID: Response Headers: %v\n", resp.Header)
+	fmt.Printf("getTransactionByID: Response Body: %s\n", string(body))
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("network request failed with status: %s, body: %s", resp.Status, string(body))
+	}
+
+	var transactionDetails map[string]interface{}
+	if err := json.Unmarshal(body, &transactionDetails); err != nil {
+		return nil, fmt.Errorf("failed to decode transaction JSON: %w, body: %s", err, string(body))
+	}
+
+	fmt.Printf("getTransactionByID: Parsed Response: %v\n", transactionDetails)
+
+	return transactionDetails, nil
+}
+
+// GetTransactionOutcome polls the blockchain for the final status of a transaction
+// identified by `txID`. It repeatedly queries the Network Access Gateway (NAG)
+// until the transaction's status is no longer "Pending" or a specified timeout is reached.
+// The polling interval is determined by `intervalSec`.
+//
+// Parameters:
+//   - txID: The unique identifier of the transaction to monitor.
+//   - timeoutSec: The maximum time (in seconds) to wait for the transaction to finalize.
+//   - intervalSec: The delay (in seconds) between consecutive polling attempts.
+//
+// Returns:
+//
+//	A map[string]interface{} containing the finalized transaction details if successful.
+//	Returns `nil` if the timeout is exceeded or if any error occurs during polling,
+//	with the specific error message stored in `a.LastError`.
+func (a *CEPAccount) GetTransactionOutcome(txID string, timeoutSec int, intervalSec int) map[string]interface{} {
+	if a.NAGURL == "" {
+		a.LastError = "network is not set"
+		return nil
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(timeoutSec)*time.Second)
+	defer cancel()
+
+	ticker := time.NewTicker(time.Duration(intervalSec) * time.Second)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			a.LastError = "timeout exceeded while waiting for transaction outcome"
+			return nil
+		case <-ticker.C:
+			data, err := a.getTransactionByID(txID, 0, 10) // Search recent blocks
+			if err != nil {
+				// Log non-critical errors and continue polling
+				
+				continue
+			}
+
+			if result, ok := data["Result"].(float64); ok && result == 200 {
+				if response, ok := data["Response"].(map[string]interface{}); ok {
+					if status, ok := response["Status"].(string); ok && status != "Pending" {
+						return response // Transaction finalized
+					}
+				}
+			}
+		}
+	}
+}
+</file>
+
+<file path="pkg/certificate_test.go">
+package circular_enterprise_apis
+
+import (
+	"encoding/json"
+	"testing"
+)
+
+func TestSetData(t *testing.T) {
+	cert := NewCCertificate()
+	cert.SetData("test")
+	if cert.Data != "74657374" {
+		t.Errorf("Expected data to be '74657374', but got '%s'", cert.Data)
+	}
+}
+
+func TestGetData(t *testing.T) {
+	cert := NewCCertificate()
+	cert.Data = "74657374"
+	if cert.GetData() != "test" {
+		t.Errorf("Expected data to be 'test', but got '%s'", cert.GetData())
+	}
+}
+
+func TestGetJSONCertificate(t *testing.T) {
+	cert := NewCCertificate()
+	cert.SetData("test")
+	cert.SetPreviousTxID("0x123")
+	cert.SetPreviousBlock("0x456")
+
+	jsonString := cert.GetJSONCertificate()
+
+	var data map[string]interface{}
+	if err := json.Unmarshal([]byte(jsonString), &data); err != nil {
+		t.Fatalf("Failed to unmarshal JSON: %v", err)
+	}
+
+	if data["data"] != "74657374" {
+		t.Errorf("Expected data to be '74657374', but got '%s'", data["data"])
+	}
+	if data["previousTxID"] != "0x123" {
+		t.Errorf("Expected previousTxID to be '0x123', but got '%s'", data["previousTxID"])
+	}
+	if data["previousBlock"] != "0x456" {
+		t.Errorf("Expected previousBlock to be '0x456', but got '%s'", data["previousBlock"])
+	}
+	if data["version"] != LibVersion {
+		t.Errorf("Expected version to be '%s', but got '%s'", LibVersion, data["version"])
+	}
+}
+
+func TestGetCertificateSize(t *testing.T) {
+	cert := NewCCertificate()
+	cert.SetData("test")
+	cert.SetPreviousTxID("0x123")
+	cert.SetPreviousBlock("0x456")
+
+	jsonString := cert.GetJSONCertificate()
+	expectedSize := len(jsonString)
+	actualSize := cert.GetCertificateSize()
+
+	if actualSize != expectedSize {
+		t.Errorf("Expected size to be %d, but got %d", expectedSize, actualSize)
+	}
+}
+</file>
+
+<file path="pkg/certificate.go">
+package circular_enterprise_apis
+
+import (
+	"encoding/json"
+
+	"circular_enterprise_apis/pkg/utils"
+)
+
+// CCertificate represents a data structure for a Circular Protocol certificate.
+// It encapsulates the core data content, references to previous transactions and blocks
+// for chaining purposes, and the version of the library used to create it.
+// This structure is fundamental for ensuring data integrity and traceability on the blockchain.
+type CCertificate struct {
+	Data          string `json:"data"`          // The primary data content of the certificate, typically in hexadecimal format.
+	PreviousTxID  string `json:"previousTxID"`  // The transaction ID of the preceding certificate in a chain, if applicable.
+	PreviousBlock string `json:"previousBlock"` // The block identifier of the preceding certificate in a chain, if applicable.
+	Version       string `json:"version"`       // The version of the Circular Enterprise APIs library used to generate the certificate.
+}
+
+// NewCCertificate creates and initializes a new CCertificate instance with default empty values.
+// The `Version` field is automatically populated with the current library version (`LibVersion`).
+// This factory function ensures that a new certificate object is properly structured
+// before its data and chaining references are set.
+//
+// Returns:
+//
+//	A pointer to a newly initialized CCertificate struct.
+func NewCCertificate() *CCertificate {
+	return &CCertificate{
+		Data:          "",
+		PreviousTxID:  "",
+		PreviousBlock: "",
+		Version:       LibVersion,
+	}
+}
+
+// SetData sets the primary data content of the certificate.
+// The input `data` string is automatically converted into its hexadecimal representation
+// and stored in the `Data` field of the CCertificate. This ensures that the certificate
+// data is consistently stored in a blockchain-compatible format.
+//
+// Parameters:
+//   - data: The string content to be set as the certificate's data.
+func (c *CCertificate) SetData(data string) {
+	c.Data = utils.StringToHex(data)
+}
+
+// GetData retrieves the primary data content from the certificate.
+// The hexadecimal data stored in the `Data` field of the CCertificate is
+// automatically converted back into its original string representation.
+// This function allows for easy access to the human-readable form of the
+// certificate's payload.
+//
+// Returns:
+//
+//	The original string representation of the certificate's data.
+func (c *CCertificate) GetData() string {
+	return utils.HexToString(c.Data)
+}
+
+// GetJSONCertificate serializes the entire CCertificate object into a JSON string.
+// This function is crucial for preparing the certificate for submission to the blockchain
+// or for external consumption, ensuring a standardized and interoperable format.
+// It includes all fields of the CCertificate: `Data`, `PreviousTxID`, `PreviousBlock`, and `Version`.
+//
+// Returns:
+//
+//	A JSON string representation of the CCertificate. In case of a marshaling error,
+//	an empty string is returned, aligning with the behavior of the corresponding Java API.
+func (c *CCertificate) GetJSONCertificate() string {
+	certificateMap := map[string]interface{}{
+		"data":          c.Data,
+		"previousTxID":  c.PreviousTxID,
+		"previousBlock": c.PreviousBlock,
+		"version":       c.Version,
+	}
+	jsonBytes, err := json.Marshal(certificateMap)
+	if err != nil {
+		return "" // Return empty string on error, matching Java's behavior
+	}
+	return string(jsonBytes)
+}
+
+// GetCertificateSize calculates the size of the JSON-serialized representation of the certificate in bytes.
+// This function is useful for estimating the payload size before submission to the blockchain
+// or for network transfer considerations. It first converts the certificate to its JSON string
+// representation and then measures the byte length of that string.
+//
+// Returns:
+//
+//	The size of the JSON-serialized certificate in bytes. If the JSON serialization fails,
+//	0 is returned, maintaining consistency with the Java API.
+func (c *CCertificate) GetCertificateSize() int {
+	jsonString := c.GetJSONCertificate()
+	if jsonString == "" {
+		return 0 // Return 0 on error, matching Java's behavior
+	}
+	return len(jsonString)
+}
+
+// SetPreviousTxID sets the transaction ID of the certificate that immediately precedes
+// the current certificate in a chain. This is a critical component for establishing
+// a verifiable lineage of data on the blockchain, enabling historical tracking and integrity checks.
+//
+// Parameters:
+//   - txID: The transaction ID (string) of the previous certificate.
+func (c *CCertificate) SetPreviousTxID(txID string) {
+	c.PreviousTxID = txID
+}
+
+// SetPreviousBlock sets the block identifier of the certificate that immediately precedes
+// the current certificate in a chain. Similar to `SetPreviousTxID`, this helps in
+// establishing a verifiable and traceable history of certificates on the blockchain.
+//
+// Parameters:
+//   - block: The block identifier (string) of the previous certificate.
+func (c *CCertificate) SetPreviousBlock(block string) {
+	c.PreviousBlock = block
+}
+
+// GetPreviousTxID retrieves the transaction ID of the certificate that immediately precedes
+// the current certificate in a chain. This value is crucial for reconstructing the
+// historical lineage of data and verifying the integrity of the certificate chain.
+//
+// Returns:
+//
+//	The transaction ID (string) of the previous certificate.
+func (c *CCertificate) GetPreviousTxID() string {
+	return c.PreviousTxID
+}
+
+// GetPreviousBlock retrieves the block identifier of the certificate that immediately precedes
+// the current certificate in a chain. This value, in conjunction with `GetPreviousTxID`,
+// allows for comprehensive tracing and validation of the certificate's history on the blockchain.
+//
+// Returns:
+//
+//	The block identifier (string) of the previous certificate.
+func (c *CCertificate) GetPreviousBlock() string {
+	return c.PreviousBlock
+}
+</file>
+
+<file path="pkg/common_test.go">
+package circular_enterprise_apis
+
+import (
+	"net/http"
+	"net/http/httptest"
+	"strings"
+	"testing"
+)
+
+func TestGetNAG(t *testing.T) {
+	// Save original values to restore after tests
+	originalNetworkURL := NetworkURL
+	originalHTTPClient := httpClient
+	defer func() {
+		NetworkURL = originalNetworkURL
+		httpClient = originalHTTPClient
+	}()
+
+	tests := []struct {
+		name           string
+		network        string
+		mockStatusCode int
+		mockBody       string
+		expectedURL    string
+		expectedError  string
+	}{
+		{
+			name:           "Success",
+			network:        "testnet",
+			mockStatusCode: http.StatusOK,
+			mockBody:       `{"status":"success", "url":"https://mock.nag.url/NAG.php?cep="}`,
+			expectedURL:    "https://mock.nag.url/NAG.php?cep=",
+			expectedError:  "",
+		},
+		{
+			name:           "EmptyNetworkIdentifier",
+			network:        "",
+			mockStatusCode: http.StatusOK, // This won't be hit due to early exit
+			mockBody:       "",
+			expectedURL:    "",
+			expectedError:  "network identifier cannot be empty",
+		},
+		{
+			name:           "NonOKStatus",
+			network:        "testnet",
+			mockStatusCode: http.StatusInternalServerError,
+			mockBody:       `{"status":"error", "message":"Internal server error"}`,
+			expectedURL:    "",
+			expectedError:  "network discovery failed with status: 500 Internal Server Error",
+		},
+		{
+			name:           "InvalidJSON",
+			network:        "testnet",
+			mockStatusCode: http.StatusOK,
+			mockBody:       `invalid json`,
+			expectedURL:    "",
+			expectedError:  "failed to unmarshal NAG response: invalid character 'i' looking for beginning of value",
+		},
+		{
+			name:           "ErrorStatusInJSON",
+			network:        "testnet",
+			mockStatusCode: http.StatusOK,
+			mockBody:       `{"status":"error", "message":"Network not found"}`,
+			expectedURL:    "",
+			expectedError:  "failed to get valid NAG URL from response: Network not found",
+		},
+		{
+			name:           "SuccessStatusEmptyURL",
+			network:        "testnet",
+			mockStatusCode: http.StatusOK,
+			mockBody:       `{"status":"success", "url":""}`,
+			expectedURL:    "",
+			expectedError:  "failed to get valid NAG URL from response: ", // Message is empty as per mockBody
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Create a mock server for each test case
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.WriteHeader(tt.mockStatusCode)
+				_, err := w.Write([]byte(tt.mockBody))
+				if err != nil {
+					t.Fatalf("Failed to write mock response: %v", err)
+				}
+			}))
+			defer server.Close()
+
+			// Set the NetworkURL to the mock server's URL
+			NetworkURL = server.URL + "/getNAG?network="
+			httpClient = server.Client() // Use the mock server's client
+
+			url, err := GetNAG(tt.network)
+
+			// Check for expected URL
+			if url != tt.expectedURL {
+				t.Errorf("GetNAG() got URL = %q, want %q", url, tt.expectedURL)
+			}
+
+			// Check for expected error
+			if tt.expectedError == "" {
+				if err != nil {
+					t.Errorf("GetNAG() unexpected error: %v", err)
+				}
+			} else {
+				if err == nil || !strings.Contains(err.Error(), tt.expectedError) {
+					t.Errorf("GetNAG() got error = %v, want error containing %q", err, tt.expectedError)
+				}
+			}
+		})
+	}
+}
+</file>
+
+<file path="pkg/common.go">
+package circular_enterprise_apis
+
+import (
+	"encoding/json"
+	"fmt"
+	"io"
+	"net/http"
+)
+
+// httpClient is the default HTTP client used for making network requests within the Circular Enterprise APIs.
+// It is configured with standard settings and is utilized by functions that communicate with external services,
+// such as the Network Access Gateway (NAG) for network discovery and transaction submission.
+var httpClient *http.Client = http.DefaultClient
+
+// Constants define fundamental parameters and metadata for the Circular Enterprise APIs.
+const (
+	// LibVersion specifies the current semantic version of the Go client library.
+	// This version is included in various API requests to ensure compatibility
+	// and for tracking purposes on the Circular Protocol network.
+	LibVersion = "1.0.13"
+
+	// DefaultChain represents the blockchain identifier for the default public network.
+	// This hexadecimal string uniquely identifies the primary blockchain that the
+	// Circular Enterprise APIs will interact with by default, unless explicitly overridden.
+	DefaultChain = "0x8a20baa40c45dc5055aeb26197c203e576ef389d9acb171bd62da11dc5ad72b2"
+
+	// DefaultNAG is the base URL for the default public Network Access Gateway (NAG).
+	// The NAG serves as the primary entry point for client applications to interact
+	// with the Circular Protocol network, facilitating operations like transaction
+	// submission and account nonce retrieval.
+	DefaultNAG = "https://nag.circularlabs.io/NAG.php?cep="
+)
+
+// NetworkURL is the base endpoint used for discovering and resolving the appropriate
+// Network Access Gateway (NAG) for a given network. This URL points to a service
+// that provides the specific NAG endpoint based on the network identifier provided.
+var NetworkURL = "https://circularlabs.io/network/getNAG?network="
+
+// GetNAG is a utility function responsible for discovering the Network Access Gateway (NAG) URL
+// for a specified network. It performs an HTTP GET request to the `NetworkURL` endpoint,
+// appending the `network` identifier as a query parameter.
+//
+// Parameters:
+//   - network: A string identifier for the desired network (e.g., "testnet", "mainnet").
+//
+// Returns:
+//   - The resolved NAG URL as a string if the request is successful and a valid URL is returned.
+//   - An error if the network identifier is empty, the HTTP request fails, the network
+//     discovery service returns a non-OK status, or the response cannot be parsed
+//     or indicates an error.
+func GetNAG(network string) (string, error) {
+	if network == "" {
+		return "", fmt.Errorf("network identifier cannot be empty")
+	}
+
+	resp, err := httpClient.Get(NetworkURL + network)
+	if err != nil {
+		return "", fmt.Errorf("failed to fetch NAG URL: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("network discovery failed with status: %s", resp.Status)
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("failed to read response body: %w", err)
+	}
+
+	// The response is expected to be a JSON object like {"status":"success", "url":"..."}
+	var nagResponse struct {
+		Status  string `json:"status"`
+		URL     string `json:"url"`
+		Message string `json:"message"`
+	}
+
+	if err := json.Unmarshal(body, &nagResponse); err != nil {
+		return "", fmt.Errorf("failed to unmarshal NAG response: %w", err)
+	}
+
+	fmt.Printf("NAG Response Status: %s\n", nagResponse.Status)
+	fmt.Printf("NAG Response Message: %s\n", nagResponse.Message)
+
+	if nagResponse.Status == "error" {
+		return "", fmt.Errorf("failed to get valid NAG URL from response: %s", nagResponse.Message)
+	}
+
+	if nagResponse.Status != "success" || nagResponse.URL == "" {
+		return "", fmt.Errorf("failed to get valid NAG URL from response: %s", nagResponse.Message)
+	}
+
+	return nagResponse.URL, nil
+}
+</file>
+
+<file path="tests/e2e/e2e_test.go">
+//go:build e2e
+
+package e2e_tests
+
+import (
+	"fmt"
+	"os"
+	"testing"
+	"time"
+
+	cep "circular_enterprise_apis/pkg"
+
+	"github.com/joho/godotenv"
+)
+
+var (
+	privateKeyHex string
+	address       string
+)
+
+func TestMain(m *testing.M) {
+	// Load .env file from the project root
+	if err := godotenv.Load("../../.env"); err != nil {
+		fmt.Println("Error loading .env file, tests requiring env vars will be skipped.")
+	}
+
+	privateKeyHex = os.Getenv("CIRCULAR_PRIVATE_KEY")
+	address = os.Getenv("CIRCULAR_ADDRESS")
+
+	// Run the tests
+	os.Exit(m.Run())
+}
+
+func TestE2ECircularOperations(t *testing.T) {
+	if privateKeyHex == "" || address == "" {
+		t.Skip("Skipping E2E test: CIRCULAR_PRIVATE_KEY and CIRCULAR_ADDRESS environment variables must be set")
+	}
+
+	acc := cep.NewCEPAccount()
+
+	if !acc.Open(address) {
+		t.Fatalf("acc.Open() failed: %v", acc.GetLastError())
+	}
+
+	if nagURL := acc.SetNetwork("testnet"); nagURL == "" {
+		t.Fatalf("acc.SetNetwork() failed: %v", acc.GetLastError())
+	}
+	acc.SetBlockchain(cep.DefaultChain)
+
+	if !acc.UpdateAccount() {
+		t.Fatalf("acc.UpdateAccount() failed: %v", acc.GetLastError())
+	}
+
+	acc.SubmitCertificate("test message from Go E2E test", privateKeyHex)
+	if acc.GetLastError() != "" {
+		t.Fatalf("acc.SubmitCertificate() failed: %v", acc.GetLastError())
+	}
+
+	txHash := acc.LatestTxID
+	if txHash == "" {
+		t.Fatal("txHash not found in response")
+	}
+
+	// Poll for transaction outcome
+	var outcome map[string]interface{}
+	for i := 0; i < 10; i++ {
+		outcome = acc.GetTransactionOutcome(txHash, 10, acc.IntervalSec)
+		if outcome != nil {
+			if status, ok := outcome["Status"].(string); ok && status == "Confirmed" {
+				break
+			}
+		}
+		time.Sleep(2 * time.Second)
+	}
+
+	if acc.GetLastError() != "" {
+		t.Fatalf("acc.GetTransactionOutcome() failed: %v", acc.GetLastError())
+	}
+
+	if status, _ := outcome["Status"].(string); status != "Executed" {
+		t.Errorf("Expected transaction status to be 'Confirmed', but got '%s'", status)
+	}
+}
+
+func TestE2ECertificateOperations(t *testing.T) {
+	if privateKeyHex == "" || address == "" {
+		t.Skip("Skipping E2E test: CIRCULAR_PRIVATE_KEY and CIRCULAR_ADDRESS environment variables must be set")
+	}
+
+	acc := cep.NewCEPAccount()
+
+	if !acc.Open(address) {
+		t.Fatalf("acc.Open() failed: %v", acc.GetLastError())
+	}
+
+	if nagURL := acc.SetNetwork("testnet"); nagURL == "" {
+		t.Fatalf("acc.SetNetwork() failed: %v", acc.GetLastError())
+	}
+	acc.SetBlockchain(cep.DefaultChain)
+
+	if !acc.UpdateAccount() {
+		t.Fatalf("acc.UpdateAccount() failed: %v", acc.GetLastError())
+	}
+
+	acc.SubmitCertificate("{\"test\":\"data\"}", privateKeyHex)
+	if acc.GetLastError() != "" {
+		t.Fatalf("acc.SubmitCertificate() failed: %v", acc.GetLastError())
+	}
+
+	txHash := acc.LatestTxID
+	if txHash == "" {
+		t.Fatal("txHash not found in response")
+	}
+
+	// Poll for transaction outcome
+	var outcome map[string]interface{}
+	for i := 0; i < 10; i++ {
+		outcome = acc.GetTransactionOutcome(txHash, 10, acc.IntervalSec)
+		if outcome != nil {
+			if status, ok := outcome["Status"].(string); ok && status == "Confirmed" {
+				break
+			}
+		}
+		time.Sleep(2 * time.Second)
+	}
+
+	if acc.GetLastError() != "" {
+		t.Fatalf("acc.GetTransactionOutcome() failed: %v", acc.GetLastError())
+	}
+
+	if status, _ := outcome["Status"].(string); status != "Executed" {
+		t.Errorf("Expected transaction status to be 'Confirmed', but got '%s'", status)
+	}
+}
+
+func TestE2EHelloWorldCertification(t *testing.T) {
+	if privateKeyHex == "" || address == "" {
+		t.Skip("Skipping E2E test: CIRCULAR_PRIVATE_KEY and CIRCULAR_ADDRESS environment variables must be set")
+	}
+
+	acc := cep.NewCEPAccount()
+
+	if !acc.Open(address) {
+		t.Fatalf("acc.Open() failed: %v", acc.GetLastError())
+	}
+
+	if nagURL := acc.SetNetwork("testnet"); nagURL == "" {
+		t.Fatalf("acc.SetNetwork() failed: %v", acc.GetLastError())
+	}
+	acc.SetBlockchain(cep.DefaultChain)
+
+	if !acc.UpdateAccount() {
+		t.Fatalf("acc.UpdateAccount() failed: %v", acc.GetLastError())
+	}
+
+	acc.SubmitCertificate("Hello World", privateKeyHex)
+	if acc.GetLastError() != "" {
+		t.Fatalf("acc.SubmitCertificate() failed: %v", acc.GetLastError())
+	}
+
+	txHash := acc.LatestTxID
+	if txHash == "" {
+		t.Fatal("txHash not found in response")
+	}
+
+	// Poll for transaction outcome
+	var outcome map[string]interface{}
+	for i := 0; i < 10; i++ {
+		outcome = acc.GetTransactionOutcome(txHash, 10, acc.IntervalSec)
+		if outcome != nil {
+			if status, ok := outcome["Status"].(string); ok && status == "Confirmed" {
+				break
+			}
+		}
+		time.Sleep(2 * time.Second)
+	}
+
+	if acc.GetLastError() != "" {
+		t.Fatalf("acc.GetTransactionOutcome() failed: %v", acc.GetLastError())
+	}
+
+	if status, _ := outcome["Status"].(string); status != "Executed" {
+		t.Errorf("Expected transaction status to be 'Confirmed', but got '%s'", status)
+	}
+}
+</file>
+
+<file path="tests/integration/integration_test.go">
+//go:build integration_tests
+
+package integration_tests
+
+import (
+	"fmt"
+	"os"
+	"testing"
+	"time"
+
+	cep "circular_enterprise_apis/pkg"
+
+	"github.com/joho/godotenv"
+)
+
+func TestMain(m *testing.M) {
+	// Load .env file from the current directory (tests/integration)
+	// This makes the environment variables available to the tests
+	err := godotenv.Load("../../.env") // Load .env from project root
+	if err != nil {
+		fmt.Println("Error loading .env file from project root, tests requiring env vars will be skipped.")
+	}
+	// Run the tests
+	os.Exit(m.Run())
+}
+
+func TestCircularOperations(t *testing.T) {
+	privateKeyHex := os.Getenv("CIRCULAR_PRIVATE_KEY")
+	address := os.Getenv("CIRCULAR_ADDRESS")
+	if privateKeyHex == "" || address == "" {
+		t.Skip("Skipping test: CIRCULAR_PRIVATE_KEY and CIRCULAR_ADDRESS environment variables must be set")
+	}
+
+	acc := cep.NewCEPAccount()
+	acc.SetNetwork("testnet")
+	acc.SetBlockchain("8a20baa40c45dc5055aeb26197c203e576ef389d9acb171bd62da11dc5ad72b2")
+
+	if !acc.Open(address) {
+		t.Fatalf("acc.Open() failed: %v", acc.LastError)
+	}
+
+	t.Logf("NAGURL: %s", acc.NAGURL)
+	t.Logf("Blockchain: %s", acc.Blockchain)
+	if !acc.UpdateAccount() {
+		t.Fatalf("acc.UpdateAccount() failed: %v", acc.GetLastError())
+	}
+
+	acc.SubmitCertificate("test message", privateKeyHex)
+	if acc.GetLastError() != "" {
+		t.Fatalf("acc.SubmitCertificate() failed: %v", acc.GetLastError())
+	}
+
+	txHash := acc.LatestTxID
+	if txHash == "" {
+		t.Fatal("txHash not found in response")
+	}
+
+	outcome := acc.GetTransactionOutcome(txHash, 30, 2) // Increased timeout and interval to match Java
+	if acc.GetLastError() != "" {
+		t.Fatalf("acc.GetTransactionOutcome() failed: %v", acc.GetLastError())
+	}
+
+	if status, ok := outcome["Status"].(string); !ok || status != "Executed" { // Changed to "Executed" to match Java
+		t.Errorf("Expected transaction status to be 'Confirmed', but got '%s'", status)
+	}
+
+	// Query the transaction
+	var blockID string
+	if resp, ok := outcome["Response"].(map[string]interface{}); ok {
+		if bID, ok := resp["BlockID"].(string); ok {
+			blockID = bID
+		}
+	}
+
+	if blockID != "" {
+		txData := acc.GetTransaction(blockID, txHash)
+		if acc.GetLastError() != "" {
+			t.Fatalf("acc.GetTransaction() failed: %v", acc.GetLastError())
+		}
+		if result, ok := txData["Result"].(float64); !ok || result != 200 {
+			t.Errorf("Expected transaction query result to be 200, but got %v", result)
+		}
+	} else {
+
+	}
+}
+
+func TestCertificateOperations(t *testing.T) {
+	privateKeyHex := os.Getenv("CIRCULAR_PRIVATE_KEY")
+	address := os.Getenv("CIRCULAR_ADDRESS")
+	if privateKeyHex == "" || address == "" {
+		t.Skip("Skipping test: CIRCULAR_PRIVATE_KEY and CIRCULAR_ADDRESS environment variables must be set")
+	}
+
+	acc := cep.NewCEPAccount()
+	acc.SetNetwork("testnet")
+	acc.SetBlockchain("8a20baa40c45dc5055aeb26197c203e576ef389d9acb171bd62da11dc5ad72b2")
+
+	if !acc.Open(address) {
+		t.Fatalf("acc.Open() failed: %v", acc.LastError)
+	}
+
+	t.Logf("NAGURL: %s", acc.NAGURL)
+	t.Logf("Blockchain: %s", acc.Blockchain)
+	if !acc.UpdateAccount() {
+		t.Fatalf("acc.UpdateAccount() failed: %v", acc.GetLastError())
+	}
+
+	certificateData := "test data"
+	acc.SubmitCertificate(certificateData, privateKeyHex)
+	if acc.GetLastError() != "" {
+		t.Fatalf("acc.SubmitCertificate() failed: %v", acc.GetLastError())
+	}
+
+	txHash := acc.LatestTxID
+	if txHash == "" {
+		t.Fatal("txHash not found in response")
+	}
+
+	outcome := acc.GetTransactionOutcome(txHash, 30, 2) // Increased timeout and interval to match Java
+	if acc.GetLastError() != "" {
+		t.Fatalf("acc.GetTransactionOutcome() failed: %v", acc.GetLastError())
+	}
+
+	if status, ok := outcome["Status"].(string); !ok || status != "Executed" { // Changed to "Executed" to match Java
+		t.Errorf("Expected transaction status to be 'Confirmed', but got '%s'", status)
+	}
+
+	// If a transaction ID is available, test transaction query
+	if txHash != "" {
+		var blockID string
+		if resp, ok := outcome["Response"].(map[string]interface{}); ok {
+			if bID, ok := resp["BlockID"].(string); ok {
+				blockID = bID
+			}
+		}
+		if blockID != "" {
+			txData := acc.GetTransaction(blockID, txHash) // Changed to GetTransaction
+			if acc.GetLastError() != "" {
+				t.Fatalf("acc.GetTransaction() failed: %v", acc.GetLastError())
+			}
+			if result, ok := txData["Result"].(float64); !ok || result != 200 {
+				t.Errorf("Expected transaction query result to be 200, but got %v", result)
+			}
+		} else {
+
+		}
+	}
+}
+
+func TestHelloWorldCertification(t *testing.T) {
+	privateKeyHex := os.Getenv("CIRCULAR_PRIVATE_KEY")
+	address := os.Getenv("CIRCULAR_ADDRESS")
+	if privateKeyHex == "" || address == "" {
+		t.Skip("Skipping test: CIRCULAR_PRIVATE_KEY and CIRCULAR_ADDRESS environment variables must be set")
+	}
+
+	acc := cep.NewCEPAccount()
+	acc.SetNetwork("testnet")
+	acc.SetBlockchain("8a20baa40c45dc5055aeb26197c203e576ef389d9acb171bd62da11dc5ad72b2")
+
+	if !acc.Open(address) {
+		t.Fatalf("acc.Open() failed: %v", acc.LastError)
+	}
+
+	t.Logf("NAGURL: %s", acc.NAGURL)
+	t.Logf("Blockchain: %s", acc.Blockchain)
+	if !acc.UpdateAccount() {
+		t.Fatalf("acc.UpdateAccount() failed: %v", acc.GetLastError())
+	}
+
+	// Create and submit the certificate with timestamp
+	message := "Hello World"
+	certificateData := fmt.Sprintf(
+		`{"message":"%s","timestamp":%d}`,
+		message,
+		time.Now().UnixNano()/int64(time.Millisecond),
+	)
+
+	acc.SubmitCertificate(certificateData, privateKeyHex)
+	if acc.GetLastError() != "" {
+		t.Fatalf("acc.SubmitCertificate() failed: %v", acc.GetLastError())
+	}
+
+	// Get and save the transaction ID with retries
+	txHash := ""
+	maxRetries := 5
+	for i := 0; i < maxRetries; i++ {
+		txHash = acc.LatestTxID
+		if txHash != "" {
+			break
+		}
+		t.Logf("Transaction ID not available yet, retrying in 2 seconds... (Attempt %d/%d)", i+1, maxRetries)
+		time.Sleep(2 * time.Second)
+	}
+
+	if txHash == "" {
+		t.Fatal("Failed to get transaction ID after retries")
+	}
+
+	// Wait for transaction to be processed and get outcome (increased timeout to 120 seconds)
+	outcome := acc.GetTransactionOutcome(txHash, 120, 5)
+	if acc.GetLastError() != "" {
+		t.Fatalf("acc.GetTransactionOutcome() failed: %v", acc.GetLastError())
+	}
+
+	if status, ok := outcome["Status"].(string); !ok || status != "Executed" {
+		t.Errorf("Expected transaction status to be 'Executed', but got '%s'", status)
+	}
+
+	// Query the transaction (Java test also queries by blockID and txId)
+	var blockID string
+	if resp, ok := outcome["Response"].(map[string]interface{}); ok {
+		if bID, ok := resp["BlockID"].(string); ok {
+			blockID = bID
+		}
+	}
+
+	if blockID != "" {
+		txData := acc.GetTransaction(blockID, txHash)
+		if acc.GetLastError() != "" {
+			t.Fatalf("acc.GetTransaction() failed: %v", acc.GetLastError())
+		}
+		if result, ok := txData["Result"].(float64); !ok || result != 200 {
+			t.Errorf("Expected transaction query result to be 200, but got %v", result)
+		}
+	} else {
+
+	}
+}
+</file>
+
+<file path=".gitignore">
+.env
+</file>
+
+<file path="env.example">
+CIRCULAR_PRIVATE_KEY=
+CIRCULAR_ADDRESS=
+</file>
+
+<file path="go.mod">
+module circular_enterprise_apis
+
+go 1.24.3
+
+require (
+	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.4.0
+	github.com/joho/godotenv v1.5.1
+)
+</file>
+
+<file path="LICENSE">
+MIT License
+
+Copyright (c) 2024 CIRCULAR GLOBAL LEDGERS, INC.
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+</file>
+
+<file path="main.go">
+// Package main provides the entry point for the Circular Enterprise APIs Go application.
+// It handles environment variable loading and serves as a placeholder for future application logic.
+package main
+
+import (
+	"log"
+
+	"github.com/joho/godotenv"
+)
+
+// main is the entry point of the application.
+// It loads environment variables from a .env file and logs any errors.
+func main() {
+	// Load environment variables from .env file
+	err := godotenv.Load()
+	if err != nil {
+		log.Printf("Error loading .env file: %v", err)
+		// Optionally, you can exit here if .env is critical
+		// os.Exit(1)
+	}
+
+	// This is the main entry point for the application.
+	// The test suite targets the library packages, not this executable.
+
+	// Example of accessing an environment variable:
+	// circularAddress := os.Getenv("CIRCULAR_ADDRESS")
+	// if circularAddress != "" {
+	//      log.Printf("CIRCULAR_ADDRESS: %s", circularAddress)
+	// }
+}
+</file>
+
+<file path="README.md">
+# Circular Enterprise APIs - Go Implementation
+
+Official Circular Protocol Enterprise APIs for Data Certification - Go Implementation
+
+## Features
+
+- Account management and blockchain interaction
+- Certificate creation and submission
+- Transaction tracking and verification
+- Secure digital signatures using ECDSA (secp256k1)
+- RFC 6979 compliant deterministic signatures
+
+## Requirements
+
+- Go 1.20 or higher
+
+## Dependencies
+
+- `github.com/decred/dcrd/dcrec/secp256k1/v4` for secp256k1 elliptic curve operations
+- `github.com/joho/godotenv` for loading environment variables
+
+## Installation
+
+1. Clone the repository
+2. Navigate to the project directory:
+   ```bash
+   cd Circular-Protocol/Enterprise-APIs/Go-CEP-APIs
+   ```
+3. Download dependencies:
+   ```bash
+   go mod tidy
+   ```
+
+## Usage Example
+
+See `examples/simple_certificate_submission.go` for a basic example of how to use the API to submit a certificate.
+
+## API Documentation
+
+### CEPAccount Struct
+
+Main struct for interacting with the Circular blockchain:
+
+- `NewCEPAccount() *CEPAccount` - Factory function to create a new `CEPAccount` instance.
+- `Open(address string) bool` - Initializes the account with a specified blockchain address.
+- `Close()` - Clears all sensitive and operational data from the account.
+- `SetNetwork(network string) string` - Configures the account to operate on a specific blockchain network.
+- `SetBlockchain(chain string)` - Explicitly sets the blockchain identifier for the account.
+- `UpdateAccount() bool` - Fetches the latest nonce for the account from the NAG.
+- `SubmitCertificate(pdata string, privateKeyHex string)` - Creates, signs, and submits a data certificate to the blockchain.
+- `GetTransaction(blockID string, transactionID string) map[string]interface{}` - Retrieves transaction details by block and transaction ID.
+- `GetTransactionOutcome(txID string, timeoutSec int, intervalSec int) map[string]interface{}` - Polls for the final status of a transaction.
+- `GetLastError() string` - Retrieves the last error message.
+
+### CCertificate Struct
+
+Struct for managing certificates:
+
+- `NewCCertificate() *CCertificate` - Factory function to create a new `CCertificate` instance.
+- `SetData(data string)` - Sets the primary data content of the certificate.
+- `GetData() string` - Retrieves the primary data content from the certificate.
+- `GetJSONCertificate() string` - Serializes the certificate object into a JSON string.
+- `GetCertificateSize() int` - Calculates the size of the JSON-serialized certificate in bytes.
+- `SetPreviousTxID(txID string)` - Sets the transaction ID of the preceding certificate.
+- `SetPreviousBlock(block string)` - Sets the block identifier of the preceding certificate.
+- `GetPreviousTxID() string` - Retrieves the transaction ID of the preceding certificate.
+- `GetPreviousBlock() string` - Retrieves the block identifier of the preceding certificate.
+
+## Testing
+
+To run the tests, you need to set up the following environment variables in a `.env` file in the project root:
+
+```
+CIRCULAR_PRIVATE_KEY="your_64_character_private_key_here"
+CIRCULAR_ADDRESS="your_account_address_here"
+```
+
+The private key should be a 64-character (32-byte) hex string, and the address should be a valid Ethereum-style address (40 characters + 0x prefix).
+
+### Running Tests
+
+```bash
+go test ./...
+```
+
+## Building
+
+```bash
+go build -o circular-apis main.go
+```
+
+## License
+
+MIT License - see LICENSE file for details
+
+## Credits
+
+CIRCULAR GLOBAL LEDGERS, INC. - USA
+
+- Original JS Version: Gianluca De Novi, PhD
+- Go Implementation: Danny De Novi
+</file>
+
+</files>

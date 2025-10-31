@@ -1,0 +1,124 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "certify_data",
+  "description": "Submits data to the Circular Protocol blockchain for immutable certification. Creates a C_TYPE_CERTIFICATE transaction signed with secp256k1, posts it to the blockchain, and returns a transaction ID for tracking. This is the primary tool for recording verifiable, tamper-proof data on-chain.",
+  "type": "object",
+  "properties": {
+    "data": {
+      "type": "string",
+      "description": "The data to certify on the blockchain. Can be any string content (documents, proofs, attestations). Will be hex-encoded before submission. Maximum size: 1 MB (1,048,576 bytes).",
+      "minLength": 1,
+      "maxLength": 1048576,
+      "examples": [
+        "Medical record hash: SHA256(patient_data)",
+        "{\"claim\":\"Product authenticity certificate\",\"serial\":\"ABC123\"}",
+        "Academic credential: PhD in Computer Science, 2025"
+      ]
+    },
+    "network": {
+      "type": "string",
+      "description": "The Circular Protocol network to use (testnet for testing, mainnet for production).",
+      "enum": ["testnet", "mainnet"],
+      "default": "testnet"
+    },
+    "wallet_address": {
+      "type": "string",
+      "description": "The sender wallet address (must match the private key configured via CIRCULAR_PRIVATE_KEY environment variable). Optional if server is configured with default address.",
+      "minLength": 1,
+      "examples": [
+        "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb"
+      ]
+    }
+  },
+  "required": ["data", "network"],
+  "additionalProperties": false,
+  "examples": [
+    {
+      "data": "Clinical trial result: Efficacy 87%, Safety confirmed",
+      "network": "testnet"
+    },
+    {
+      "data": "{\"document_hash\":\"0xabc123...\",\"timestamp\":\"2025-10-30T12:00:00Z\"}",
+      "network": "mainnet",
+      "wallet_address": "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb"
+    }
+  ],
+  "output": {
+    "description": "Returns the transaction ID assigned by the blockchain for tracking and proof generation",
+    "type": "object",
+    "properties": {
+      "transaction_id": {
+        "type": "string",
+        "description": "Unique identifier for the certification transaction (assigned by blockchain)"
+      },
+      "status": {
+        "type": "string",
+        "description": "Initial transaction status (typically 'Pending')",
+        "enum": ["Pending"]
+      },
+      "network": {
+        "type": "string",
+        "description": "The network where transaction was submitted"
+      },
+      "submitted_at": {
+        "type": "string",
+        "format": "date-time",
+        "description": "RFC3339 timestamp when transaction was submitted"
+      },
+      "sender": {
+        "type": "string",
+        "description": "Wallet address that submitted the transaction"
+      }
+    },
+    "required": ["transaction_id", "status", "network", "submitted_at"]
+  },
+  "errors": [
+    {
+      "type": "INVALID_INPUT",
+      "status_code": 400,
+      "message": "Payload exceeds 1 MB size limit",
+      "retry": false
+    },
+    {
+      "type": "INVALID_SIGNATURE",
+      "status_code": 400,
+      "message": "Transaction signature verification failed",
+      "retry": false
+    },
+    {
+      "type": "INSUFFICIENT_BALANCE",
+      "status_code": 402,
+      "message": "Wallet has insufficient CIRX balance for transaction fee",
+      "retry": false
+    },
+    {
+      "type": "NONCE_MISMATCH",
+      "status_code": 400,
+      "message": "Transaction nonce does not match wallet nonce",
+      "retry": true,
+      "retry_suggestion": "Fetch fresh nonce and retry transaction"
+    },
+    {
+      "type": "API_UNAVAILABLE",
+      "status_code": 503,
+      "message": "Circular Protocol API is temporarily unavailable",
+      "retry": true,
+      "retry_suggestion": "Retry after 30 seconds"
+    },
+    {
+      "type": "RATE_LIMIT",
+      "status_code": 429,
+      "message": "API rate limit exceeded",
+      "retry": true,
+      "retry_suggestion": "Retry after 60 seconds"
+    }
+  ],
+  "notes": [
+    "The server automatically fetches the wallet nonce before submission",
+    "Transaction is signed with secp256k1 using CIRCULAR_PRIVATE_KEY from environment",
+    "Certification transactions have second-highest priority in Circular Protocol (after coin transfers)",
+    "Transaction fees (0.001-0.035 USD in CIRX) are deducted automatically from sender wallet",
+    "Use get_transaction_status tool to poll for confirmation (target: < 60 seconds)",
+    "Once executed, use get_certification_proof tool to generate verifiable proof"
+  ]
+}

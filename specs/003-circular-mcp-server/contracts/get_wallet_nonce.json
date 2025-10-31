@@ -1,0 +1,78 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "get_wallet_nonce",
+  "description": "Retrieves the current nonce for a Circular Protocol wallet address. The nonce is a sequential counter used to prevent transaction replay attacks and ensure correct transaction ordering. This value must be included in certification transactions.",
+  "type": "object",
+  "properties": {
+    "wallet_address": {
+      "type": "string",
+      "description": "The Circular Protocol wallet address to query. Format TBD (likely hex string with or without 0x prefix).",
+      "minLength": 1,
+      "examples": [
+        "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb",
+        "circular1qp3xknz0hncjlxxe8qy8jp0vnh9wlexjqkvx7h"
+      ]
+    },
+    "network": {
+      "type": "string",
+      "description": "The Circular Protocol network to query (testnet or mainnet).",
+      "enum": ["testnet", "mainnet"],
+      "default": "testnet"
+    }
+  },
+  "required": ["wallet_address", "network"],
+  "additionalProperties": false,
+  "examples": [
+    {
+      "wallet_address": "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb",
+      "network": "testnet"
+    }
+  ],
+  "output": {
+    "description": "Returns the current nonce value for the wallet address",
+    "type": "object",
+    "properties": {
+      "wallet_address": {
+        "type": "string",
+        "description": "The wallet address queried"
+      },
+      "current_nonce": {
+        "type": "integer",
+        "description": "The next nonce value to use for transactions (sequential counter)",
+        "minimum": 0
+      },
+      "network": {
+        "type": "string",
+        "description": "The network queried (testnet or mainnet)"
+      },
+      "last_updated": {
+        "type": "string",
+        "format": "date-time",
+        "description": "RFC3339 timestamp when nonce was retrieved"
+      }
+    },
+    "required": ["wallet_address", "current_nonce", "network", "last_updated"]
+  },
+  "errors": [
+    {
+      "type": "INVALID_ADDRESS",
+      "status_code": 400,
+      "message": "Wallet address format is invalid",
+      "retry": false
+    },
+    {
+      "type": "API_UNAVAILABLE",
+      "status_code": 503,
+      "message": "Circular Protocol API is temporarily unavailable",
+      "retry": true,
+      "retry_suggestion": "Retry after 30 seconds"
+    },
+    {
+      "type": "NETWORK_ERROR",
+      "status_code": 503,
+      "message": "Network connection failed",
+      "retry": true,
+      "retry_suggestion": "Retry after 30 seconds"
+    }
+  ]
+}

@@ -1,0 +1,118 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "get_transaction_status",
+  "description": "Polls the status of a Circular Protocol certification transaction until it reaches 'Executed' state. Transactions progress through Pending → Verified → Executed. This tool implements automatic polling with 5-second intervals and 60-second timeout to ensure certification completion.",
+  "type": "object",
+  "properties": {
+    "transaction_id": {
+      "type": "string",
+      "description": "The unique transaction identifier returned by certify_data tool. Used to track the transaction through its lifecycle on the blockchain.",
+      "minLength": 1,
+      "examples": [
+        "tx_abc123def456",
+        "0x1234567890abcdef"
+      ]
+    },
+    "network": {
+      "type": "string",
+      "description": "The Circular Protocol network where the transaction was submitted (must match the network used in certify_data).",
+      "enum": ["testnet", "mainnet"],
+      "default": "testnet"
+    },
+    "wait_for_execution": {
+      "type": "boolean",
+      "description": "If true, polls until transaction reaches 'Executed' status or timeout (60 seconds). If false, returns current status immediately.",
+      "default": true
+    }
+  },
+  "required": ["transaction_id", "network"],
+  "additionalProperties": false,
+  "examples": [
+    {
+      "transaction_id": "tx_abc123def456",
+      "network": "testnet",
+      "wait_for_execution": true
+    },
+    {
+      "transaction_id": "0x1234567890abcdef",
+      "network": "mainnet",
+      "wait_for_execution": false
+    }
+  ],
+  "output": {
+    "description": "Returns the current transaction status with blockchain context",
+    "type": "object",
+    "properties": {
+      "transaction_id": {
+        "type": "string",
+        "description": "The transaction ID queried"
+      },
+      "status": {
+        "type": "string",
+        "description": "Current transaction state in lifecycle",
+        "enum": ["Pending", "Verified", "Executed", "Failed"]
+      },
+      "block_id": {
+        "type": "string",
+        "description": "Block identifier where transaction was included (only when status = 'Executed')"
+      },
+      "timestamp": {
+        "type": "string",
+        "description": "Block timestamp in Circular Protocol format (YYYY:MM:DD-HH:MM:SS) when transaction was executed"
+      },
+      "confirmations": {
+        "type": "integer",
+        "description": "Number of block confirmations (for finality assessment)",
+        "minimum": 0
+      },
+      "network": {
+        "type": "string",
+        "description": "The network queried"
+      },
+      "executed_at": {
+        "type": "string",
+        "format": "date-time",
+        "description": "RFC3339 timestamp when transaction reached Executed status"
+      }
+    },
+    "required": ["transaction_id", "status", "network"]
+  },
+  "errors": [
+    {
+      "type": "TRANSACTION_TIMEOUT",
+      "status_code": 504,
+      "message": "Transaction did not reach Executed status within 60 seconds",
+      "retry": true,
+      "retry_suggestion": "Transaction may still be pending, check status later"
+    },
+    {
+      "type": "TRANSACTION_FAILED",
+      "status_code": 400,
+      "message": "Blockchain rejected transaction",
+      "retry": false
+    },
+    {
+      "type": "INVALID_INPUT",
+      "status_code": 400,
+      "message": "Transaction ID not found on blockchain",
+      "retry": false
+    },
+    {
+      "type": "API_UNAVAILABLE",
+      "status_code": 503,
+      "message": "Circular Protocol API is temporarily unavailable",
+      "retry": true,
+      "retry_suggestion": "Retry after 30 seconds"
+    }
+  ],
+  "notes": [
+    "Polling interval: Fixed 5 seconds between status checks (per spec.md FR-006a)",
+    "Maximum polling time: 60 seconds (12 attempts) before timeout",
+    "Status lifecycle: Pending → Verified → Executed (or Failed)",
+    "Transactions may skip 'Verified' state in some cases (implementation-dependent)",
+    "Average confirmation time: < 60 seconds for 95% of transactions (target: SC-003)",
+    "Certificate transactions have priority in mempool for faster processing",
+    "Once status = 'Executed', transaction is immutable and cannot be reversed",
+    "Use get_certification_proof tool once transaction is executed to generate verifiable proof"
+  ]
+}

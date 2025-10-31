@@ -1,0 +1,1639 @@
+This file is a merged representation of the entire codebase, combined into a single document by Repomix.
+
+<file_summary>
+This section contains a summary of this file.
+
+<purpose>
+This file contains a packed representation of the entire repository's contents.
+It is designed to be easily consumable by AI systems for analysis, code review,
+or other automated processes.
+</purpose>
+
+<file_format>
+The content is organized as follows:
+1. This summary section
+2. Repository information
+3. Directory structure
+4. Repository files (if enabled)
+5. Multiple file entries, each consisting of:
+  - File path as an attribute
+  - Full contents of the file
+</file_format>
+
+<usage_guidelines>
+- This file should be treated as read-only. Any changes should be made to the
+  original repository files, not this packed version.
+- When processing this file, use the file path to distinguish
+  between different files in the repository.
+- Be aware that this file may contain sensitive information. Handle it with
+  the same level of security as you would the original repository.
+</usage_guidelines>
+
+<notes>
+- Some files may have been excluded based on .gitignore rules and Repomix's configuration
+- Binary files are not included in this packed representation. Please refer to the Repository Structure section for a complete list of file paths, including binary files
+- Files matching patterns in .gitignore are excluded
+- Files matching default ignore patterns are excluded
+- Files are sorted by Git change count (files with more changes are at the bottom)
+</notes>
+
+</file_summary>
+
+<directory_structure>
+.github/
+  workflows/
+    npm-publish.yml
+examples/
+  main.cjs
+  main.mjs
+lib/
+  index.cjs
+  index.js
+LICENSE
+package.json
+README.md
+</directory_structure>
+
+<files>
+This section contains the contents of the repository's files.
+
+<file path=".github/workflows/npm-publish.yml">
+name: Node.js Package
+
+on:
+  release:
+    types: [created]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci
+
+  publish-npm:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          registry-url: https://registry.npmjs.org/
+      - run: npm ci
+      - run: npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.npm_token }}
+</file>
+
+<file path="examples/main.cjs">
+// main.cjs
+const { CEP_Account } = require('circular-enterprise-apis');
+
+const Address = 'your-wallet-address';
+const PrivateKey = 'your-private-key';
+const blockchain = '0x8a20baa40c45dc5055aeb26197c203e576ef389d9acb171bd62da11dc5ad72b2';
+
+let account = new CEP_Account();
+let txID;
+let txBlock;
+
+async function run() {
+    try {
+        console.log("Opening Account");
+        account.open(Address);
+        account.setBlockchain(blockchain);
+        account.setNetwork("testnet");
+        console.log(account.NAG_URL);
+        console.log(account.NETWORK_NODE);
+        console.log("Updating Account");
+        const updateResult = await account.updateAccount();
+        console.log("Account updated");
+        if (!updateResult) {
+            console.log("Account Failed to Update");
+            return;
+        }
+        console.log("Account up to date");
+        console.log("Nonce : ", account.Nonce);
+
+        console.log("Submitting Transaction");
+        const submitResult = await account.submitCertificate("test Enterprise APIs", PrivateKey);
+
+        console.log("Result :", submitResult);
+        if (submitResult.Result === 200) {
+            console.log("Certificate submitted successfully:", submitResult);
+            txID = submitResult.Response.TxID;
+
+            console.log("Getting Transaction Outcome");
+            const outcome = await account.GetTransactionOutcome(txID, 25);
+            console.log("Report ", outcome);
+            console.log(JSON.stringify(outcome));
+
+            if (outcome.Result === 200) {
+                txBlock = outcome.BlockID;
+                console.log("Transaction ID:", txID);
+                console.log("Transaction Block:", txBlock);
+
+                console.log("Searching Transaction");
+                const getTxResult = await account.getTransaction(txBlock, txID);
+                console.log("Get Transaction Result :", getTxResult);
+
+                if (getTxResult.Result === 200) {
+                    console.log("Certificate found :", getTxResult);
+                    
+                } else {
+                    console.log("Certificate Not Found :", getTxResult.message);
+                }
+            }
+
+        } else {
+            console.log("Failed to submit certificate:", submitResult.message);
+        }
+
+    } catch (error) {
+        console.error("An error occurred:", error);
+    } finally {
+        account.close();
+        console.log("Account Closed");
+    }
+}
+
+run();
+</file>
+
+<file path="examples/main.mjs">
+// main.mjs
+import { CEP_Account } from 'circular-enterprise-apis';
+
+const Address = 'your-wallet-address';
+const PrivateKey = 'your-private-key';
+const blockchain = '0x8a20baa40c45dc5055aeb26197c203e576ef389d9acb171bd62da11dc5ad72b2';
+
+let account = new CEP_Account();
+let txID;
+let txBlock;
+
+async function run() {
+    try {
+        console.log("Opening Account");
+        account.open(Address);
+        console.log("Updating Account");
+        const updateResult = await account.updateAccount();
+        if (!updateResult) {
+            console.log("Account Failed to Update");
+            return;
+        }
+        console.log("Account up to date");
+        console.log("Nonce : ", account.Nonce);
+
+        console.log("Submitting Transaction");
+        const submitResult = await account.submitCertificate("test Enterprise APIs", PrivateKey);
+
+        console.log("Result :", submitResult);
+        if (submitResult.Result === 200) {
+            console.log("Certificate submitted successfully:", submitResult);
+            txID = submitResult.Response.TxID;
+
+            console.log("Getting Transaction Outcome");
+            const outcome = await account.GetTransactionOutcome(txID, 25);
+            console.log("Report ", outcome);
+            console.log(JSON.stringify(outcome));
+
+            if (outcome.Result === 200) {
+                txBlock = outcome.BlockID;
+                console.log("Transaction ID:", txID);
+                console.log("Transaction Block:", txBlock);
+
+                console.log("Searching Transaction");
+                const getTxResult = await account.getTransaction(txBlock, txID);
+                console.log("Get Transaction Result :", getTxResult);
+
+                if (getTxResult.Result === 200) {
+                    console.log("Certificate found :", getTxResult);
+                } else {
+                    console.log("Certificate Not Found :", getTxResult.message);
+                }
+            }
+
+        } else {
+            console.log("Failed to submit certificate:", submitResult.message);
+        }
+
+    } catch (error) {
+        console.error("An error occurred:", error);
+    } finally {
+        account.close();
+        console.log("Account Closed");
+    }
+}
+
+run();
+</file>
+
+<file path="lib/index.cjs">
+/******************************************************************************* 
+
+        CIRCULAR Enterprise APIs for Data Certification
+         
+        License : Open Source for private and commercial use
+                     
+        CIRCULAR GLOBAL LEDGERS, INC. - USA
+                     
+        Version : 1.0.1
+                     
+        Creation: 2/5/2025
+        Update  : 2/5/2025
+                  
+        Originator: Gianluca De Novi, PhD
+        Contributors: <names here>           
+        
+*******************************************************************************/
+const {
+    ec
+} = require('elliptic');
+const sha256 = require('sha256');
+const https = require('https');
+const url = require('url');
+
+
+
+/* Library Details ************************************************************/
+const LIB_VERSION = '1.0.13';
+const NETWORK_URL = 'https://circularlabs.io/network/getNAG?network=';
+const DEFAULT_CHAIN = '0x8a20baa40c45dc5055aeb26197c203e576ef389d9acb171bd62da11dc5ad72b2';
+const DEFAULT_NAG = 'https://nag.circularlabs.io/NAG.php?cep=';
+
+/* HELPER FUNCTIONS ***********************************************************/
+
+/**
+ * Function to add a leading zero to numbers less than 10
+ * @param {number} num - Number to pad
+ * @returns {string} Padded number as a string
+ */
+function padNumber(num) {
+    return num < 10 ? '0' + num : num.toString();
+}
+
+/**
+ * Returns a formatted timestamp in UTC
+ * @returns {string} Formatted timestamp (YYYY:MM:DD-HH:MM:SS)
+ */
+function getFormattedTimestamp() {
+    const date = new Date();
+    const year = date.getUTCFullYear();
+    const month = padNumber(date.getUTCMonth() + 1);
+    const day = padNumber(date.getUTCDate());
+    const hours = padNumber(date.getUTCHours());
+    const minutes = padNumber(date.getUTCMinutes());
+    const seconds = padNumber(date.getUTCSeconds());
+
+    return `${year}:${month}:${day}-${hours}:${minutes}:${seconds}`;
+}
+
+/**
+ * Removes '0x' from hexadecimal strings if present
+ * @param {string} word - Hexadecimal string
+ * @returns {string} Hexadecimal string without '0x'
+ */
+function HexFix(word) {
+    if (typeof word === 'string') {
+        return word.startsWith('0x') ? word.slice(2) : word;
+    }
+    return '';
+}
+
+/**
+ * Converts a string to its hexadecimal representation
+ * @param {string} str - Input string
+ * @returns {string} Hexadecimal representation of the string
+ */
+function stringToHex(str) {
+    let hexString = '';
+    for (let i = 0; i < str.length; i++) {
+        const hex = str.charCodeAt(i).toString(16);
+        hexString += ('00' + hex).slice(-2);
+    }
+    return hexString;
+}
+
+/**
+ * Converts a hexadecimal string to a regular string
+ * @param {string} hex - Hexadecimal string
+ * @returns {string} Regular string
+ */
+function hexToString(hex) {
+    hex = HexFix(hex);
+    let str = '';
+    for (let i = 0; i < hex.length; i += 2) {
+        const code = parseInt(hex.substr(i, 2), 16);
+        if (!isNaN(code) && code !== 0) {
+            str += String.fromCharCode(code);
+        }
+    }
+    return str;
+}
+
+/*******************************************************************************
+ * Circular Certificate Class for certificate chaining
+ */
+class C_CERTIFICATE {
+    constructor() {
+        this.data = null;
+        this.previousTxID = null;
+        this.previousBlock = null;
+        this.codeVersion = LIB_VERSION;
+    }
+
+    /**
+     * Inserts application data into the certificate
+     * @param {string} data - Data content
+     */
+    setData(data) {
+        this.data = stringToHex(data);
+    }
+
+    /**
+     * Extracts application data from the certificate
+     * @returns {string} Data content
+     */
+    getData() {
+        return hexToString(this.data);
+    }
+
+    /**
+     * Returns the certificate in JSON format
+     * @returns {string} JSON string representation of the certificate
+     */
+    getJSONCertificate() {
+        const certificate = {
+            data: this.data,
+            previousTxID: this.previousTxID,
+            previousBlock: this.previousBlock,
+            version: this.codeVersion,
+        };
+        return JSON.stringify(certificate);
+    }
+
+    /**
+     * Returns the size of the certificate in bytes
+     * @returns {number} Size of the certificate in bytes
+     */
+    getCertificateSize() {
+        const jsonString = this.getJSONCertificate();
+        return Buffer.byteLength(jsonString, 'utf8');
+    }
+}
+
+/*******************************************************************************
+ * Circular Account Class
+ */
+class CEP_Account {
+    constructor() {
+        this.address = null;
+        this.publicKey = null;
+        this.info = null;
+        this.codeVersion = LIB_VERSION;
+        this.lastError = '';
+        this.NAG_URL = DEFAULT_NAG;
+        this.NETWORK_NODE = '';
+        this.blockchain = DEFAULT_CHAIN;
+        this.LatestTxID = '';
+        this.Nonce = 0;
+        this.data = {};
+        this.intervalSec = 2;
+    }
+
+    /**
+     * Opens an account by setting the address
+     * @param {string} address - Account address
+     */
+    open(address) {
+        if (!address || typeof address !== 'string') {
+            throw new Error('Invalid address format');
+        }
+        this.address = address;
+    }
+
+    /**
+     * Updates the account's Nonce by querying the network
+     * @returns {boolean} True if successful, false otherwise
+     */
+
+
+    async updateAccount() {
+        if (!this.address) {
+            throw new Error('Account is not open');
+        }
+
+        const data = {
+            Blockchain: HexFix(this.blockchain),
+            Address: HexFix(this.address),
+            Version: this.codeVersion,
+        };
+        console.log("Sending data:", JSON.stringify(data));
+
+        return new Promise((resolve, reject) => {
+            // Construct the URL without query parameters
+            const parsedUrl = url.parse(this.NAG_URL + 'Circular_GetWalletNonce_' + this.NETWORK_NODE);
+            console.log("Parsed URL:", parsedUrl);
+
+            const options = {
+                hostname: parsedUrl.hostname,
+                port: parsedUrl.port || 443,
+                path: parsedUrl.path, // Path without query parameters
+                method: 'POST', // Make sure to use POST method
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Content-Length': Buffer.byteLength(JSON.stringify(data)), // Set correct content length
+                },
+                timeout: 60000, // Timeout extended to 60 seconds
+                rejectUnauthorized: true,
+            };
+
+            const req = https.request(options, (res) => {
+                let body = '';
+                res.on('data', (chunk) => {
+                    body += chunk;
+                });
+                res.on('end', () => {
+                    console.log(`Response status: ${res.statusCode}`); // Log the response status
+                    try {
+                        const jsonResponse = JSON.parse(body);
+                        if (jsonResponse.Result === 200 && jsonResponse.Response && jsonResponse.Response.Nonce !== undefined) {
+                            this.Nonce = jsonResponse.Response.Nonce + 1;
+                            resolve(true);
+                        } else {
+                            console.error('Invalid response format or missing Nonce field');
+                            reject(new Error('Invalid response format or missing Nonce field'));
+                        }
+                    } catch (error) {
+                        console.error('Failed to parse response:', error);
+                        reject(new Error('Failed to parse response body'));
+                    }
+                });
+            });
+
+            req.on('error', (error) => {
+                console.error('Error in updateAccount:', error.message);
+                reject(new Error(`Request failed with error: ${error.message}`));
+            });
+
+            req.write(JSON.stringify(data)); // Send the data in the body as JSON
+            req.end();
+        });
+    }
+
+    /**
+     * Sets the blockchain network
+     * @param {string} network - Network name (e.g., 'devnet', 'testnet', 'mainnet')
+     */
+    async setNetwork(network) {
+        return new Promise((resolve, reject) => {
+            const nagUrl = NETWORK_URL + encodeURIComponent(network);
+            const parsedUrl = url.parse(nagUrl);
+            const options = {
+                hostname: parsedUrl.hostname,
+                port: parsedUrl.port || 443,
+                path: parsedUrl.path,
+                method: 'GET',
+                headers: {
+                    Accept: 'application/json'
+                },
+                timeout: 30000
+            };
+
+            const req = https.request(options, (res) => {
+                let body = '';
+                res.on('data', (chunk) => {
+                    body += chunk;
+                });
+                res.on('end', () => {
+                    try {
+                        const data = JSON.parse(body);
+                        if (data.status === 'success' && data.url) {
+                            this.NAG_URL = data.url;
+                            resolve();
+                        } else {
+                            reject(new Error(data.message || 'Failed to get URL'));
+                        }
+                    } catch (error) {
+                        reject(error);
+                    }
+                });
+            });
+
+            req.on('error', (error) => {
+                console.error('Error fetching network URL:', error.message);
+                reject(error);
+            });
+
+            req.end();
+        });
+    }
+
+    /**
+     * Sets the blockchain address
+     * @param {string} chain - Blockchain address
+     */
+    setBlockchain(chain) {
+        this.blockchain = chain;
+    }
+
+    /**
+     * Closes the account and resets all fields
+     */
+    close() {
+        this.address = null;
+        this.publicKey = null;
+        this.info = null;
+        this.lastError = '';
+        this.NAG_URL = DEFAULT_NAG;
+        this.NETWORK_NODE = '';
+        this.blockchain = DEFAULT_CHAIN;
+        this.LatestTxID = '';
+        this.data = {};
+        this.intervalSec = 2;
+    }
+
+    /**
+     * Signs data using the account's private key
+     * @param {string} data - Data to sign
+     * @param {string} privateKey - Private key associated with the account
+     * @returns {string} Signature
+     */
+    signData(data, privateKey) {
+        if (!this.address) {
+            throw new Error('Account is not open');
+        }
+
+        const ecInstance = new ec('secp256k1');
+        const key = ecInstance.keyFromPrivate(HexFix(privateKey), 'hex');
+        const msgHash = sha256(data).toString('hex');
+        const signature = key.sign(msgHash).toDER('hex');
+        return signature;
+    }
+
+    /**
+     * Submits a certificate to the blockchain
+     * @param {string} pdata - Data to submit
+     * @param {string} privateKey - Private key associated with the account
+     * @returns {Promise<Object>} Response from the blockchain
+     */
+    async submitCertificate(pdata, privateKey) {
+        if (!this.address) {
+            throw new Error('Account is not open');
+        }
+
+        const PayloadObject = {
+            Action: 'CP_CERTIFICATE',
+            Data: stringToHex(pdata),
+        };
+
+        const jsonstr = JSON.stringify(PayloadObject);
+        const Payload = stringToHex(jsonstr);
+        const Timestamp = getFormattedTimestamp();
+        const str = HexFix(this.blockchain) + HexFix(this.address) + HexFix(this.address) + Payload + this.Nonce + Timestamp;
+        const ID = sha256(str).toString('hex');
+        const Signature = this.signData(ID, privateKey);
+
+        const data = {
+            ID,
+            From: HexFix(this.address),
+            To: HexFix(this.address),
+            Timestamp,
+            Payload: String(Payload),
+            Nonce: String(this.Nonce),
+            Signature,
+            Blockchain: HexFix(this.blockchain),
+            Type: 'C_TYPE_CERTIFICATE',
+            Version: this.codeVersion,
+        };
+
+        return new Promise((resolve, reject) => {
+            const parsedUrl = url.parse(this.NAG_URL + 'Circular_AddTransaction_' + this.NETWORK_NODE);
+            const options = {
+                hostname: parsedUrl.hostname,
+                port: parsedUrl.port || 443,
+                path: parsedUrl.path,
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Content-Length': Buffer.byteLength(JSON.stringify(data)), // Set correct content length
+                },
+                timeout: 30000
+            };
+
+            const req = https.request(options, (res) => {
+                let body = '';
+                res.on('data', (chunk) => {
+                    body += chunk;
+                });
+                res.on('end', () => {
+                    try {
+                        resolve(JSON.parse(body));
+                    } catch (error) {
+                        reject(error);
+                    }
+                });
+            });
+
+            req.on('error', (error) => {
+                console.error('Error in submitCertificate:', error.message);
+                resolve({
+                    success: false,
+                    message: 'Server unreachable or request failed',
+                    error: error.toString()
+                });
+            });
+
+            req.write(JSON.stringify(data));
+            req.end();
+        });
+    }
+
+
+    /**
+     * Polls for transaction outcome
+     * @param {string} TxID - Transaction ID
+     * @param {number} timeoutSec - Timeout in seconds
+     * @returns {Promise<Object>} Transaction outcome
+     */
+    async GetTransactionOutcome(TxID, timeoutSec) {
+        return new Promise((resolve, reject) => {
+            const startTime = Date.now();
+            const interval = this.intervalSec * 1000;
+            const timeout = timeoutSec * 1000;
+
+            const checkTransaction = async () => {
+                const elapsedTime = Date.now() - startTime;
+
+                if (elapsedTime > timeout) {
+                    reject(new Error('Timeout exceeded'));
+                    return;
+                }
+
+                try {
+                    const data = await this.getTransactionbyID(TxID, 0, 10);
+                    if (data.Result === 200 && data.Response !== 'Transaction Not Found' && data.Response.Status !== 'Pending') {
+                        resolve(data.Response);
+                    } else {
+                        setTimeout(checkTransaction, interval);
+                    }
+                } catch (error) {
+                    reject(error);
+                }
+            };
+
+            setTimeout(checkTransaction, interval);
+        });
+    }
+
+
+    /**
+     * Searches for a transaction by its ID
+     * @param {string} TxID - Transaction ID
+     * @param {number} Start - Starting block
+     * @param {number} End - End block
+     * @returns {Promise<Object>} Transaction details
+     */
+    async getTransaction(BlockID, TxID) {
+        const data = {
+            Blockchain: HexFix(this.blockchain),
+            ID: HexFix(TxID),
+            Start: String(BlockID),
+            End: String(BlockID),
+            Version: this.codeVersion,
+        };
+
+        return new Promise((resolve, reject) => {
+            const parsedUrl = url.parse(this.NAG_URL + 'Circular_GetTransactionbyID_' + this.NETWORK_NODE);
+            const options = {
+                hostname: parsedUrl.hostname,
+                port: parsedUrl.port || 443,
+                path: parsedUrl.path,
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Content-Length': Buffer.byteLength(JSON.stringify(data)), // Set correct content length
+                },
+            };
+
+            const req = https.request(options, (res) => {
+                let body = '';
+                res.on('data', (chunk) => {
+                    body += chunk;
+                });
+                res.on('end', () => {
+                    try {
+                        resolve(JSON.parse(body));
+                    } catch (error) {
+                        reject(error);
+                    }
+                });
+            });
+
+            req.on('error', (error) => {
+                console.error('Error in getTransactionbyID:', error.message);
+                reject(error);
+            });
+
+            req.write(JSON.stringify(data));
+            req.end();
+        });
+    }
+
+
+
+    /**
+     * Searches for a transaction by its ID
+     * @param {string} TxID - Transaction ID
+     * @param {number} Start - Starting block
+     * @param {number} End - End block
+     * @returns {Promise<Object>} Transaction details
+     */
+    async getTransactionbyID(TxID, Start, End) {
+        const data = {
+            Blockchain: HexFix(this.blockchain),
+            ID: HexFix(TxID),
+            Start: String(Start),
+            End: String(End),
+            Version: this.codeVersion,
+        };
+
+        return new Promise((resolve, reject) => {
+            const parsedUrl = url.parse(this.NAG_URL + 'Circular_GetTransactionbyID_' + this.NETWORK_NODE);
+            const options = {
+                hostname: parsedUrl.hostname,
+                port: parsedUrl.port || 443,
+                path: parsedUrl.path,
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Content-Length': Buffer.byteLength(JSON.stringify(data)), // Set correct content length
+                },
+            };
+
+            const req = https.request(options, (res) => {
+                let body = '';
+                res.on('data', (chunk) => {
+                    body += chunk;
+                });
+                res.on('end', () => {
+                    try {
+                        resolve(JSON.parse(body));
+                    } catch (error) {
+                        reject(error);
+                    }
+                });
+            });
+
+            req.on('error', (error) => {
+                console.error('Error in getTransactionbyID:', error.message);
+                reject(error);
+            });
+
+            req.write(JSON.stringify(data));
+            req.end();
+        });
+    }
+
+}
+
+// Export classes for use in other modules
+module.exports = {
+    C_CERTIFICATE,
+    CEP_Account
+};
+</file>
+
+<file path="lib/index.js">
+/******************************************************************************* 
+
+        CIRCULAR Enterprise APIs for Data Certification
+         
+        License : Open Source for private and commercial use
+                     
+        CIRCULAR GLOBAL LEDGERS, INC. - USA
+                     
+        Version : 1.0.1
+                     
+        Creation: 2/5/2025
+        Update  : 2/5/2025
+                  
+        Originator: Gianluca De Novi, PhD
+        Contributors: <names here>           
+        
+*******************************************************************************/
+
+import elliptic from 'elliptic';
+import sha256 from 'sha256';
+import fetch from 'node-fetch';
+
+/* Library Details ************************************************************/
+let LIB_VERSION = '1.0.13';
+let NETWORK_URL = 'https://circularlabs.io/network/getNAG?network=';
+let DEFAULT_CHAIN = '0x8a20baa40c45dc5055aeb26197c203e576ef389d9acb171bd62da11dc5ad72b2';
+let DEFAULT_NAG = 'https://nag.circularlabs.io/NAG.php?cep=';
+/* HELPER FUNCTIONS ***********************************************************/
+
+/* 
+ * Function to add a leading zero to numbers less than 10
+ * num : number to pad
+ * 
+ */
+function padNumber(num) {
+    return num < 10 ? '0' + num : num;
+}
+
+
+function getFormattedTimestamp() {
+    let date = new Date(); 
+    let year = date.getUTCFullYear(); 
+    let month = padNumber(date.getUTCMonth() + 1);  
+    let day = padNumber(date.getUTCDate()); 
+    let hours = padNumber(date.getUTCHours()); 
+    let minutes = padNumber(date.getUTCMinutes()); 
+    let seconds = padNumber(date.getUTCSeconds()); 
+
+    // Formats the date and time in a specific format and returns it
+    return `${year}:${month}:${day}-${hours}:${minutes}:${seconds}`;
+}
+
+
+/*
+ *
+ *  removes '0x' from hexadecimal numbers if the have it
+ * 
+ */
+function HexFix(word)
+{
+   if (typeof word === 'string') {
+       var Word = word;
+       if (word.startsWith('0x')) { Word = Word.slice(2); }
+       return Word;
+   }
+   return '';
+}
+
+/*
+ *  Convert a string in its hexadecimal representation without '0x'
+ */
+function stringToHex(str) {
+  let hexString = '';
+  for (let i = 0; i < str.length; i++) {
+    const hex = str.charCodeAt(i).toString(16);
+    hexString += ('00' + hex).slice(-2);
+  }
+  return hexString;
+}
+
+
+
+/*
+ *  Converts a hexadecimal string in a regulare string 
+ */
+function hexToString(hex) {
+    var str = '';
+    hex = HexFix(hex);
+    for (var i = 0; i < hex.length; i += 2) {
+        var code = parseInt(hex.substr(i, 2), 16);
+        if (!isNaN(code) && code !== 0) {
+            str += String.fromCharCode(code);
+        }
+    }
+    return str;
+}
+
+
+
+/*******************************************************************************
+ * Circular Certificate  Class for certificate chaining
+ */
+export class C_CERTIFICATE {
+      
+    constructor() {
+        this.data = null;
+        this.previousTxID = null;
+        this.previousBlock = null;
+    }
+    
+
+
+/*
+ *    insert application data into the certificate 
+ *    data : data content
+ */
+    setData(data)
+    {
+         this.data = stringToHex(data);    
+    }
+
+
+/*
+ *    extracts application data from the certificate 
+ */    
+    getData()
+    {
+         return hexToString(this.data);    
+    }
+    
+/*
+ *    returns the certificate in JSON format 
+ */     
+    getJSONCertificate(){
+        let certificate = {
+            "data": data,
+            "previousTxID": this.previousTxID,
+            "previousBlock": this.previousBlock,
+            "version": this.codeVersion
+        }; 
+        return JSON.stringify(certificate);      
+    }
+
+
+/*
+ *    extracts certificate size 
+ */     
+    getCertificateSize() {
+        let certificate = {
+            "data": data,
+            "previousTxID": this.previousTxID,
+            "previousBlock": this.previousBlock,
+            "version": this.codeVersion
+        };
+        const jsonString = JSON.stringify(certificate);
+        return Buffer.byteLength(jsonString, 'utf8');
+    }
+    
+}
+
+/*******************************************************************************
+ * Circular Account  Class 
+ */
+export class CEP_Account {
+
+    constructor() {
+        this.address = null;
+        this.publicKey = null;
+        this.info = null;
+        this.codeVersion = LIB_VERSION;
+        this.lastError='';
+        this.NAG_URL = DEFAULT_NAG;
+        this.NETWORK_NODE = '';
+        this.blockchain = DEFAULT_CHAIN;
+        this.LatestTxID = '';
+        this.Nonce = 0;
+        this.data = {};
+        this.intervalSec = 2;
+    }
+  
+  
+    
+/*
+ *    Open an account retrieving all the account info 
+ *    address : account address
+ */
+    open(address) {
+        if (!address || typeof address !== 'string') {
+            throw new Error("Invalid address format");
+        }
+        this.address = address;
+    }
+
+
+/*
+ * Returns the account data in JSON format and updates the Nonce field
+ */
+    async updateAccount() {
+        if (!this.address) {
+            throw new Error("Account is not open");
+        }
+
+        let data = {
+            "Blockchain": HexFix(this.blockchain),
+            "Address": HexFix(this.address),
+            "Version": this.codeVersion
+        };
+
+        try {
+            const response = await fetch(this.NAG_URL + 'Circular_GetWalletNonce_' + this.NETWORK_NODE, {
+                method: 'POST',
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(data),
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const jsonResponse = await response.json();
+
+            if (jsonResponse.Result === 200 && jsonResponse.Response && jsonResponse.Response.Nonce !== undefined) {
+                this.Nonce = jsonResponse.Response.Nonce + 1;
+                return true;
+            } else {
+                throw new Error('Invalid response format or missing Nonce field');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            return false;
+        }
+    }
+
+
+
+
+
+/*
+ *    selects the blockchain network 
+ *    network : selected network and it can be 'devnet', 'testnet', 'mainnet' or a custom one
+ */    
+  async  setNetwork(network) {
+
+            try {
+                  // Construct the URL with the network parameter
+                  const nagUrl = NETWORK_URL + encodeURIComponent(network);
+                  
+                  // Make the fetch request
+                  const response = await fetch(nagUrl, {
+                      method: 'GET',
+                      headers: {
+                          'Accept': 'application/json'
+                      }
+                  });
+                  
+                  // Check if the request was successful
+                  if (!response.ok) {
+                      throw new Error(`HTTP error! status: ${response.status}`);
+                  }
+                  
+                  // Parse the JSON response
+                  const data = await response.json();
+                  
+                  // Check if the status is success and URL exists
+                  if (data.status === 'success' && data.url) {
+                      
+                      this.NAG_URL= data.url;
+                      
+                  } else {
+                      throw new Error(data.message || 'Failed to get URL');
+                  }
+                  
+              } catch (error) {
+                  console.log('Error fetching network URL:', error);
+                  throw error; // Re-throw the error so the caller can handle it
+              }
+    
+        
+    }
+    
+    
+    
+/*
+ *    selects the blockchain 
+ *    chain : blockchain address
+ */    
+    
+    setBlockchain(chain) {
+        this.blockchain = chain;
+    }
+
+
+/*
+ *    closes the account 
+ */   
+    close() {
+        this.address = null;
+        this.publicKey = null;
+        this.info = null;
+        this.lastError='';
+        this.NAG_URL = DEFAULT_NAG;
+        this.NETWORK_NODE = '';
+        this.blockchain = DEFAULT_CHAIN;
+        this.LatestTxID = '';
+        this.data = {};
+        this.intervalSec = 2;
+    }
+
+
+
+/*
+ *    signs data 
+ *          data : data that you wish to sign
+ *    provateKey : private key associated to the account
+ */ 
+    signData(data, privateKey) {
+    
+        if (!this.address) {
+            throw new Error("Account is not open");
+        }
+        
+        const EC = elliptic.ec;
+        const ec = new EC('secp256k1');
+        const key = ec.keyFromPrivate(HexFix(privateKey), 'hex');
+        const msgHash = sha256(data);
+
+        // The signature is a DER-encoded hex string
+        const signature = key.sign(msgHash).toDER('hex');
+        return signature;
+    }
+
+
+/*
+ *   Searches a Transaction by its ID
+ *   The transaction will be searched initially between the pending transactions and then in the blockchain
+ *   
+ *   blockNum: block where the transaction was saved
+ *   txID: transaction ID
+ */
+async getTransaction(blockNum, txID) {
+    try {
+        let data = {
+            "Blockchain" : HexFix(this.blockchain),
+                    "ID" : HexFix(txID),
+                 "Start" : String(blockNum),
+                   "End" : String(blockNum),
+               "Version" : this.codeVersion
+        };
+
+        const response = await fetch(this.NAG_URL + 'Circular_GetTransactionbyID_' + this.NETWORK_NODE, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+
+        if (!response.ok) {
+            throw new Error('Network response was not ok');
+        }
+
+        return response.json();
+    } catch (error) {
+        console.error('Error:', error);
+        throw error;
+    }
+}
+
+
+/*
+ *   Searches a Transaction by its ID
+ *   The transaction will be searched initially between the pending transactions and then in the blockchain
+ *   
+ *   TxID: transaction ID
+ *   Start: Starting block
+ *   End: End block
+ *   
+ *   if End = 0 Start indicates the number of blocks starting from the last block minted 
+ */
+async getTransactionbyID(TxID, Start, End) {
+    try {
+        let data = {
+            "Blockchain" : HexFix(this.blockchain),
+                    "ID" : HexFix(TxID),
+                 "Start" : String(Start),
+                   "End" : String(End),
+               "Version" : this.codeVersion
+        };
+
+        const response = await fetch(this.NAG_URL + 'Circular_GetTransactionbyID_' + this.NETWORK_NODE, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+
+        if (!response.ok) {
+            throw new Error('Network response was not ok');
+        }
+
+        return response.json();
+    } catch (error) {
+        console.error('Error:', error);
+        throw error;
+    }
+}
+
+
+/*
+ *   Searches a Transaction by its ID
+ *   The transaction will be searched initially between the pending transactions and then in the blockchain
+ *   
+ *   TxID: transaction ID
+ *   Start: Starting block
+ *   End: End block
+ *   
+ *   if End = 0 Start indicates the number of blocks starting from the last block minted 
+ */
+async getTransaction(BlockID, TxID) {
+    try {
+        let data = {
+            "Blockchain" : HexFix(this.blockchain),
+                    "ID" : HexFix(TxID),
+                 "Start" : String(BlockID),
+                   "End" : String(BlockID),
+               "Version" : this.codeVersion
+        };
+
+        const response = await fetch(this.NAG_URL + 'Circular_GetTransactionbyID_' + this.NETWORK_NODE, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+
+        if (!response.ok) {
+            throw new Error('Network response was not ok');
+        }
+
+        return response.json();
+    } catch (error) {
+        console.error('Error:', error);
+        throw error;
+    }
+}
+
+
+
+
+/*
+ *    Submit data to the blockchain 
+ *          data : data that you wish to sign
+ *    provateKey : private key associated to the account
+ */ 
+    async submitCertificate(pdata, privateKey) {
+        if (!this.address) {
+            throw new Error("Account is not open");
+        }
+
+        var PayloadObject = {
+            "Action": "CP_CERTIFICATE",
+            "Data": stringToHex(pdata)
+        };
+
+        var jsonstr = JSON.stringify(PayloadObject);
+        var Payload = stringToHex(jsonstr);
+        var Timestamp = getFormattedTimestamp();
+        const str = HexFix(this.blockchain) + HexFix(this.address) + HexFix(this.address) + Payload + this.Nonce + Timestamp;
+        const ID = sha256(str);
+        var Signature = this.signData(ID, privateKey);
+
+        let data = {
+            "ID": ID,
+            "From": HexFix(this.address),
+            "To": HexFix(this.address),
+            "Timestamp": Timestamp,
+            "Payload": String(Payload),
+            "Nonce": String(this.Nonce),
+            "Signature": Signature,
+            "Blockchain": HexFix(this.blockchain),
+            "Type": 'C_TYPE_CERTIFICATE',
+            "Version": this.codeVersion
+        };
+
+        try {
+            const response = await fetch(this.NAG_URL + 'Circular_AddTransaction_' + this.NETWORK_NODE, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+
+            return await response.json();
+        } catch (error) {
+            console.error('Error:', error);
+            return { success: false, message: 'Server unreachable or request failed', error: error.toString() };
+        }
+    }
+
+
+
+
+
+/*
+ *    Recursive transaction finality polling
+ *    will search a transaction every  intervalSec seconds with a desired timeout. 
+ *    
+ *    Blockchain: blockchain where the transaction was submitted
+ *    TxID: Transaction ID
+ *    timeoutSec: Waiting timeout
+ *    
+ */
+async GetTransactionOutcome(TxID, timeoutSec) {
+    return new Promise((resolve, reject) => {
+        const startTime = Date.now();
+        const interval = this.intervalSec * 1000;  // Convert seconds to milliseconds
+        const timeout = timeoutSec * 1000;    // Convert seconds to milliseconds
+
+        const checkTransaction = () => {
+            const elapsedTime = Date.now() - startTime;
+            
+            console.log('Checking transaction...', { elapsedTime, timeout });
+
+            if (elapsedTime > timeout) {
+                console.log('Timeout exceeded');
+                reject(new Error('Timeout exceeded'));
+                return;
+            }
+
+            this.getTransactionbyID(TxID, 0, 10).then(data => {
+                    console.log('Data received:', data);
+                    if (data.Result === 200 && data.Response !== 'Transaction Not Found' && data.Response.Status!=='Pending') {
+                        resolve(data.Response);  // Resolve if transaction is found and not 'Transaction Not Found'
+                    } else {
+                        console.log('Transaction not yet confirmed or not found, polling again...');
+                        setTimeout(checkTransaction, interval);  // Continue polling
+                    }
+                })
+                .catch(error => {
+                    console.log('Error fetching transaction:', error);
+                    reject(error);  // Reject on error
+                });
+        };
+
+        setTimeout(checkTransaction, interval);  // Start polling
+    });
+}
+
+    
+}
+</file>
+
+<file path="LICENSE">
+MIT License
+
+Copyright (c) 2025 Circular Protocol
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+</file>
+
+<file path="package.json">
+{
+  "name": "circular-enterprise-apis",
+  "version": "1.0.1",
+  "description": "Official Circular Protocol Enterprise APIs for Node.js",
+  "main": "lib/index.js",
+  "author": "Danny De Novi",
+  "license": "MIT",
+  "keywords": [
+    "circular-protocol",
+    "blockchain",
+    "enterprise",
+    "api",
+    "node.js",
+    "certification",
+    "data-integrity"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/circular-protocol/NodeJS-Enterprise-APIs.git"
+  },
+  "bugs": {
+    "url": "https://github.com/circular-protocol/NodeJS-Enterprise-APIs/issues"
+  },
+  "homepage": "https://github.com/circular-protocol/NodeJS-Enterprise-APIs#readme",
+  "devDependencies": {
+  },
+  "type": "module",
+  "dependencies": {
+    "elliptic": "^6.6.1",
+    "node-fetch": "^3.3.2",
+    "sha256": "^0.2.0"
+  },
+  "exports": {
+    ".": {
+      "require": "./lib/index.cjs",
+      "import": "./lib/index.js"
+    }
+  }
+}
+</file>
+
+<file path="README.md">
+# Circular Enterprise APIs for Data Certification
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
+Official Circular Protocol Enterprise APIs for data certification on the blockchain.
+
+## Description
+
+This library provides tools for creating and submitting data certificates to the Circular blockchain. It includes functionalities for managing accounts, setting network configurations, signing data, and interacting with the Circular Network Access Gateway (NAG).
+
+## Features
+
+-   **Account Management:** Open, update, and close accounts.
+-   **Network Configuration:** Set blockchain network and address.
+-   **Data Certification:** Create and submit data certificates.
+-   **Data Signing:** Sign data using private keys.
+-   **Transaction Monitoring:** Poll for transaction outcomes and retrieve transaction details.
+-   **Hexadecimal Conversion:** Helper functions for hex string manipulation.
+-   **Timestamp Generation:** Generate formatted UTC timestamps.
+
+## Installation
+
+```bash
+npm install circular-enterprise-apis
+```
+
+## Usage
+
+### CommonJS
+
+You can find the examples in the dedicated folder.
+
+```javascript
+// main.cjs
+const { CEP_Account } = require('circular-enterprise-apis');
+
+const Address = 'your-wallet-address';
+const PrivateKey = 'your-private-key';
+const blockchain = '0x8a20baa40c45dc5055aeb26197c203e576ef389d9acb171bd62da11dc5ad72b2';
+
+let account = new CEP_Account();
+let txID;
+let txBlock;
+
+async function run() {
+    try {
+        console.log("Opening Account");
+        account.open(Address);
+        account.setBlockchain(blockchain);
+        account.setNetwork("testnet");
+        console.log(account.NAG_URL);
+        console.log(account.NETWORK_NODE);
+        console.log("Updating Account");
+        const updateResult = await account.updateAccount();
+        console.log("Account updated");
+        if (!updateResult) {
+            console.log("Account Failed to Update");
+            return;
+        }
+        console.log("Account up to date");
+        console.log("Nonce : ", account.Nonce);
+
+        console.log("Submitting Transaction");
+        const submitResult = await account.submitCertificate("test Enterprise APIs", PrivateKey);
+
+        console.log("Result :", submitResult);
+        if (submitResult.Result === 200) {
+            console.log("Certificate submitted successfully:", submitResult);
+            txID = submitResult.Response.TxID;
+
+            console.log("Getting Transaction Outcome");
+            const outcome = await account.GetTransactionOutcome(txID, 25);
+            console.log("Report ", outcome);
+            console.log(JSON.stringify(outcome));
+
+            if (outcome.Result === 200) {
+                txBlock = outcome.BlockID;
+                console.log("Transaction ID:", txID);
+                console.log("Transaction Block:", txBlock);
+
+                console.log("Searching Transaction");
+                const getTxResult = await account.getTransaction(txBlock, txID);
+                console.log("Get Transaction Result :", getTxResult);
+
+                if (getTxResult.Result === 200) {
+                    console.log("Certificate found :", getTxResult);
+                    
+                } else {
+                    console.log("Certificate Not Found :", getTxResult.message);
+                }
+            }
+
+        } else {
+            console.log("Failed to submit certificate:", submitResult.message);
+        }
+
+    } catch (error) {
+        console.error("An error occurred:", error);
+    } finally {
+        account.close();
+        console.log("Account Closed");
+    }
+}
+
+run();
+```
+
+### ES Modules
+
+```javascript
+// main.mjs
+import { CEP_Account } from 'circular-enterprise-apis';
+
+const Address = 'your-wallet-address';
+const PrivateKey = 'your-private-key';
+const blockchain = '0x8a20baa40c45dc5055aeb26197c203e576ef389d9acb171bd62da11dc5ad72b2';
+
+let account = new CEP_Account();
+let txID;
+let txBlock;
+
+async function run() {
+    try {
+        console.log("Opening Account");
+        account.open(Address);
+        console.log("Updating Account");
+        const updateResult = await account.updateAccount();
+        if (!updateResult) {
+            console.log("Account Failed to Update");
+            return;
+        }
+        console.log("Account up to date");
+        console.log("Nonce : ", account.Nonce);
+
+        console.log("Submitting Transaction");
+        const submitResult = await account.submitCertificate("test Enterprise APIs", PrivateKey);
+
+        console.log("Result :", submitResult);
+        if (submitResult.Result === 200) {
+            console.log("Certificate submitted successfully:", submitResult);
+            txID = submitResult.Response.TxID;
+
+            console.log("Getting Transaction Outcome");
+            const outcome = await account.GetTransactionOutcome(txID, 25);
+            console.log("Report ", outcome);
+            console.log(JSON.stringify(outcome));
+
+            if (outcome.Result === 200) {
+                txBlock = outcome.BlockID;
+                console.log("Transaction ID:", txID);
+                console.log("Transaction Block:", txBlock);
+
+                console.log("Searching Transaction");
+                const getTxResult = await account.getTransaction(txBlock, txID);
+                console.log("Get Transaction Result :", getTxResult);
+
+                if (getTxResult.Result === 200) {
+                    console.log("Certificate found :", getTxResult);
+                } else {
+                    console.log("Certificate Not Found :", getTxResult.message);
+                }
+            }
+
+        } else {
+            console.log("Failed to submit certificate:", submitResult.message);
+        }
+
+    } catch (error) {
+        console.error("An error occurred:", error);
+    } finally {
+        account.close();
+        console.log("Account Closed");
+    }
+}
+
+run();
+```
+
+### API
+
+#### `C_CERTIFICATE` Class
+
+-   `setData(data)`: Sets the data content of the certificate.
+-   `getData()`: Retrieves the data content of the certificate.
+-   `getJSONCertificate()`: Returns the certificate as a JSON string.
+-   `getCertificateSize()`: Returns the size of the certificate in bytes.
+
+#### `CEP_Account` Class
+
+-   `open(address)`: Opens an account with the given address.
+-   `updateAccount()`: Updates the account's Nonce by querying the network.
+-   `setNetwork(network)`: Sets the blockchain network.
+-   `setBlockchain(chain)`: Sets the blockchain address.
+-   `close()`: Closes the account and resets all fields.
+-   `signData(data, privateKey)`: Signs data using the account's private key.
+-   `submitCertificate(pdata, privateKey)`: Submits a certificate to the blockchain.
+-   `GetTransactionOutcome(TxID, timeoutSec)`: Polls for transaction outcome.
+-   `getTransactionbyID(TxID, Start, End)`: Searches for a transaction by its ID.
+
+### Contributing
+
+Contributions are welcome! Please fork the repository and submit a pull request with your changes.
+
+### License
+
+This project is licensed under the MIT License.
+</file>
+
+</files>
