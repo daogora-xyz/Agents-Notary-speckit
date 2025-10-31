@@ -26,7 +26,8 @@
       "Bash(jobs:*)",
       "Read(//home/lessuseless/.claude/projects/**)",
       "Bash(xargs:*)",
-      "Bash(awk:*)"
+      "Bash(awk:*)",
+      "SlashCommand(/speckit.tasks)"
     ],
     "deny": [],
     "ask": []
