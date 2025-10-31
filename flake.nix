@@ -71,6 +71,9 @@
             pkgs.gotools
             pkgs.go-tools
 
+            # Node.js for MCP servers
+            pkgs.nodejs_22
+
             # Database and infrastructure (native for tooling)
             pkgs.postgresql_16
             pkgs.redis
@@ -102,6 +105,7 @@
             echo "Available tools:"
             echo "  - spec-kit: Kiro Spec-Driven Development toolkit"
             echo "  - go ($(go version | cut -d' ' -f3))"
+            echo "  - node $(node --version) / npm $(npm --version)"
             echo "  - podman: Daemonless container runtime"
             echo "  - arion: NixOS Docker Compose (works with Podman)"
             echo "  - postgresql ${pkgs.postgresql_16.version} (native tooling)"
@@ -109,6 +113,16 @@
             echo ""
             echo "Project: certify.ar4s.com - Blockchain Certification Platform"
             echo "Spec: docs/OVERVIEW.md"
+            echo ""
+            echo "Spec-Kit Development Workflow:"
+            echo "  1. /speckit.constitution - Create/update project governing principles"
+            echo "  2. /speckit.specify - Define requirements and user stories"
+            echo "  3. /speckit.clarify - [Optional] Clarify underspecified areas"
+            echo "  4. /speckit.plan - Create technical implementation plans"
+            echo "  5. /speckit.tasks - Generate actionable task lists"
+            echo "  6. /speckit.analyze - [Optional] Cross-artifact consistency check"
+            echo "  7. /speckit.checklist - [Optional] Generate quality checklists"
+            echo "  8. /speckit.implement - Execute all tasks to build the feature"
             echo ""
             echo "Container Services:"
             echo "  - With Podman: podman-compose up -d"

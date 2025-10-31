@@ -25,12 +25,20 @@ func NewNonceFetcher(rpcURL string) (*NonceFetcher, error) {
 		return nil, fmt.Errorf("failed to connect to RPC: %w", err)
 	}
 
-	return &NonceFetcher{
+	nf := &NonceFetcher{
 		client:     client,
 		maxRetries: 3,
 		retryDelay: 1 * time.Second,
 		timeout:    10 * time.Second,
-	}, nil
+	}
+
+	// Verify the connection immediately
+	if err := nf.VerifyConnection(); err != nil {
+		client.Close()
+		return nil, err
+	}
+
+	return nf, nil
 }
 
 // Close closes the RPC client connection

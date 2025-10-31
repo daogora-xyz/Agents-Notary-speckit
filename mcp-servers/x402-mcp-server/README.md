@@ -14,7 +14,7 @@ The x402 Payment MCP Server enables AI agents to:
 - ✅ EIP-3009: Transfer With Authorization
 - ✅ EIP-712: Typed Structured Data Hashing and Signing
 
-**Supported Networks:** USDC payments on Base, Base Sepolia, and Arbitrum
+**Supported Networks:** USDC payments on Base, Base Sepolia, Arbitrum, and Polygon (extensible to any EVM network)
 
 ## Features
 

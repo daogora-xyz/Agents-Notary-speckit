@@ -1,0 +1,18 @@
+networks:
+  polygon:
+    chain_id: 137
+    usdc_contract: "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359"
+    facilitator_url: "https://api.cdp.coinbase.com/platform/v2/x402/"
+    rpc_url: "https://polygon-rpc.com"
+    payee_address: "0x1234567890123456789012345678901234567890"
+
+eip712:
+  domain_name: "USD Coin"
+  domain_version: "2"
+
+logging:
+  level: "INFO"
+  format: "json"
+
+cache:
+  settlement_ttl_minutes: 10

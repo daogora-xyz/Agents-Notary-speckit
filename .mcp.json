@@ -16,6 +16,24 @@
       "env": {
         "CONTEXT7_API_KEY": "ctx7sk-1ab11430-a5c4-4a80-98bf-851c449d85b0"
       }
+    },
+    "x402-payment": {
+      "command": "nix",
+      "args": [
+        "develop",
+        "/home/lessuseless/Projects/Agents-Notary-speckit",
+        "--command",
+        "go",
+        "run",
+        "./cmd/server"
+      ],
+      "cwd": "/home/lessuseless/Projects/Agents-Notary-speckit/mcp-servers/x402-mcp-server",
+      "env": {
+        "PAYEE_ADDRESS_BASE": "${PAYEE_ADDRESS_BASE}",
+        "PAYEE_ADDRESS_SEPOLIA": "${PAYEE_ADDRESS_SEPOLIA}",
+        "PAYEE_ADDRESS_ARBITRUM": "${PAYEE_ADDRESS_ARBITRUM}",
+        "PAYEE_ADDRESS_POLYGON": "${PAYEE_ADDRESS_POLYGON}"
+      }
     }
   }
 }
