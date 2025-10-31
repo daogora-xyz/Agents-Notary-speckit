@@ -204,7 +204,7 @@ Transaction ID = SHA-256(Blockchain + From + To + Payload + Nonce + Timestamp)
 
 **Status**: ✅ RESOLVED
 
-**Finding**: Transaction fees on Circular Protocol range from **$0.001 to $0.035 USD** depending on resource requirements.
+**Finding**: Transaction fees on Circular Protocol are **4 CIRX fixed per certification transaction** (confirmed with Circular Protocol product manager, 2025-10-30).
 
 **Fee Structure**:
 - **Base Transaction Fee**: $0.001 - $0.035 per transaction
@@ -217,7 +217,7 @@ Transaction ID = SHA-256(Blockchain + From + To + Payload + Nonce + Timestamp)
 **Fee Payment**:
 - Fees are deducted from sender wallet balance (in CIRX)
 - No separate fee field in transaction submission
-- Fee calculation is automatic based on transaction complexity
+- Fee is fixed at 4 CIRX per certification transaction (automatic deduction)
 
 **Implications for MCP Server**:
 1. **No fee calculation required** - handled automatically by Circular Protocol

@@ -1,21 +1,21 @@
 <!--
 Sync Impact Report
 ==================
-Version change: N/A → 1.0.0 (Initial Constitution)
-Modified principles: N/A (initial creation)
-Added sections:
-  - I. Specification-Driven Development
-  - II. Test-First Development
-  - III. MCP Architecture
-  - IV. Security-First Design
-  - V. Observability & Monitoring
-  - VI. Blockchain Integration Standards
+Version change: 1.0.0 → 1.1.0 (Layered Architecture Amendment)
+Modified principles:
+  - IV. Security-First Design (added Platform/Component scope note)
+  - V. Observability & Monitoring (added Platform/Component scope note)
+  - VI. Blockchain Integration Standards (restructured with layered requirements)
+Added sections: None
 Removed sections: None
+Rationale: Distinguish platform backend requirements (certify.ar4s.com) from MCP component requirements (circular-mcp-server, x402-mcp-server). Resolves timeout and fee ambiguities by clarifying both values are correct in different architectural layers.
+Impact assessment:
+  - x402-mcp-server: Zero impact (unchanged subsection)
+  - circular-mcp-server: Aligns constitution with existing spec.md
+  - Platform backend: Clarifies future requirements
 Templates requiring updates:
-  ✅ plan-template.md - Constitution Check section already present
-  ✅ spec-template.md - User Scenarios & Requirements align with principles
-  ✅ tasks-template.md - Test-first workflow already emphasized
-Follow-up TODOs: None - all placeholders filled
+  ✅ No template changes required (no hardcoded values)
+Follow-up TODOs: None
 -->
 
 # Agents Notary Blockchain Certification Platform Constitution
@@ -72,6 +72,8 @@ Follow-up TODOs: None - all placeholders filled
 
 ### IV. Security-First Design
 
+**Scope Note**: Encryption-at-rest and KMS requirements apply to **platform backend services** (certify.ar4s.com API) managing long-lived service wallets. MCP components may use environment-based key management where security responsibility is delegated to the deployment environment (user-managed configuration).
+
 **Wallet Key Management:**
 - Service wallet private keys MUST be encrypted at rest (AES-256)
 - Encryption keys MUST be sourced from environment or KMS/Vault
@@ -97,6 +99,8 @@ Follow-up TODOs: None - all placeholders filled
 
 ### V. Observability & Monitoring
 
+**Scope Note**: HTTP `/metrics` endpoint and Prometheus requirements apply to **platform backend services** with HTTP APIs. MCP components using stdio transport provide observability through structured JSON logging only. Metrics aggregation occurs at the platform level, not within individual MCP servers.
+
 **Logging Standards:**
 - MUST use structured JSON logging (Zap library)
 - Log levels: DEBUG (development), INFO (operations), WARN (recoverable errors), ERROR (failures)
@@ -120,14 +124,24 @@ Follow-up TODOs: None - all placeholders filled
 ### VI. Blockchain Integration Standards
 
 **Circular Protocol Enterprise APIs:**
+
+*Scope Note:* This subsection distinguishes platform-level requirements (certify.ar4s.com) from component-level capabilities (circular-mcp-server). Both sets of requirements are valid in their respective architectural layers.
+
+*Platform Backend Layer (certify.ar4s.com - future implementation):*
+- Request timeout: 30 seconds for user-facing certification operations
+- Pricing model: 4 CIRX per certification (platform pricing to end users)
+- Retry policy: Exponential backoff with dead letter queue for failed certifications after max retries
+- Orchestration: Calls MCP component with platform-level timeout enforcement
+
+*MCP Component Layer (circular-mcp-server - current implementation):*
 - MUST use Circular Protocol Enterprise APIs (Go implementation pattern from docs/GO-CEP-APIS.xml)
 - Transactions MUST use Type="C_TYPE_CERTIFICATE"
 - Nonce MUST be fetched from Enterprise API immediately before each transaction to prevent desync
 - Transaction ID MUST be calculated client-side: SHA-256(Blockchain + From + To + Payload + Nonce + Timestamp)
 - Transaction signing MUST use Secp256k1 (matching Circular Protocol Enterprise APIs)
-- CIRX fee is fixed at 4 CIRX per certification
-- Transaction status MUST be polled via Enterprise API until "Executed" or timeout (30 seconds)
-- Failed certifications MUST enter retry queue (exponential backoff, max 10 attempts)
+- Blockchain fee: 4 CIRX fixed per certification transaction (confirmed with Circular Protocol product manager)
+- Transaction status polling: Exponential backoff (2s, 3s, 5s, 8s, 13s, 29s) with 60-second maximum timeout for component reliability
+- Failed transactions: Return structured error responses (platform handles retry orchestration)
 
 **x402 Payment Protocol:**
 - Payment requirements MUST conform to x402 specification version 1
@@ -207,4 +221,4 @@ Follow-up TODOs: None - all placeholders filled
 - `/speckit.analyze` command checks cross-artifact consistency
 - Complexity violations require approval with documented rationale
 
-**Version**: 1.0.0 | **Ratified**: 2025-10-28 | **Last Amended**: 2025-10-28
+**Version**: 1.1.0 | **Ratified**: 2025-10-28 | **Last Amended**: 2025-10-30

@@ -137,15 +137,16 @@ Project root: `mcp-servers/circular-protocol-mcp-server/`
 - [ ] T044 [US1] Implement transaction builder with nonce fetching in internal/circular/transaction.go
 - [ ] T045 [US1] Implement Circular_AddTransaction_ API call in internal/circular/client.go
 - [ ] T046 [US1] Implement certify_data MCP tool in tools/certify_data.go
-- [ ] T047 [US1] Register certify_data tool with MCP server in internal/server/server.go
-- [ ] T048 [US1] Add payload size validation (1 MB limit) in tools/certify_data.go
-- [ ] T049 [US1] Add hex encoding for data payloads in internal/circular/utils.go
+- [ ] T047 [US1] Add transaction ID deduplication check (query Circular_GetTransactionbyID_ before submission) in tools/certify_data.go
+- [ ] T048 [US1] Register certify_data tool with MCP server in internal/server/server.go
+- [ ] T049 [US1] Add payload size validation (1 MB limit) in tools/certify_data.go
+- [ ] T050 [US1] Add hex encoding for data payloads in internal/circular/utils.go
 
 ### Integration Tests for User Story 1
 
-- [ ] T050 [US1] Integration test: End-to-end certification on testnet (submit + verify executed) in tests/integration/certification_flow_test.go
-- [ ] T051 [US1] Integration test: Measure confirmation time (<60 seconds target) in tests/integration/certification_flow_test.go
-- [ ] T052 [US1] Integration test: Transaction ID calculation matches API response in tests/integration/certification_flow_test.go
+- [ ] T051 [US1] Integration test: End-to-end certification on testnet (submit + verify executed) in tests/integration/certification_flow_test.go
+- [ ] T052 [US1] Integration test: Measure confirmation time (<60 seconds target) in tests/integration/certification_flow_test.go
+- [ ] T053 [US1] Integration test: Transaction ID calculation matches API response in tests/integration/certification_flow_test.go
 
 **Checkpoint**: Core certification functionality complete - MVP ready for testing
 
@@ -161,25 +162,25 @@ Project root: `mcp-servers/circular-protocol-mcp-server/`
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T053 [P] [US2] Contract test: get_transaction_status JSON schema validation in tests/contract/get_transaction_status_test.go
-- [ ] T054 [P] [US2] Contract test: get_transaction_status with valid tx_id returns status in tests/contract/get_transaction_status_test.go
-- [ ] T055 [P] [US2] Contract test: get_transaction_status with invalid tx_id returns INVALID_INPUT error in tests/contract/get_transaction_status_test.go
-- [ ] T056 [P] [US2] Contract test: get_transaction_status polling timeout returns TRANSACTION_TIMEOUT error in tests/contract/get_transaction_status_test.go
+- [ ] T054 [P] [US2] Contract test: get_transaction_status JSON schema validation in tests/contract/get_transaction_status_test.go
+- [ ] T055 [P] [US2] Contract test: get_transaction_status with valid tx_id returns status in tests/contract/get_transaction_status_test.go
+- [ ] T056 [P] [US2] Contract test: get_transaction_status with invalid tx_id returns INVALID_INPUT error in tests/contract/get_transaction_status_test.go
+- [ ] T057 [P] [US2] Contract test: get_transaction_status polling timeout returns TRANSACTION_TIMEOUT error in tests/contract/get_transaction_status_test.go
 
 ### Implementation for User Story 2
 
-- [ ] T057 [P] [US2] Implement Circular_GetTransactionbyID_ API call in internal/circular/client.go
-- [ ] T058 [P] [US2] Implement TransactionStatus lifecycle (Pending→Verified→Executed) in internal/circular/status.go
-- [ ] T059 [US2] Implement status polling logic with 5-second interval in internal/circular/status.go
-- [ ] T060 [US2] Implement get_transaction_status MCP tool in tools/get_transaction_status.go
-- [ ] T061 [US2] Register get_transaction_status tool with MCP server in internal/server/server.go
-- [ ] T062 [US2] Add timeout handling (60 seconds max) in tools/get_transaction_status.go
+- [ ] T058 [P] [US2] Implement Circular_GetTransactionbyID_ API call in internal/circular/client.go
+- [ ] T059 [P] [US2] Implement TransactionStatus lifecycle (Pending→Verified→Executed) in internal/circular/status.go
+- [ ] T060 [US2] Implement status polling logic with 5-second interval in internal/circular/status.go
+- [ ] T061 [US2] Implement get_transaction_status MCP tool in tools/get_transaction_status.go
+- [ ] T062 [US2] Register get_transaction_status tool with MCP server in internal/server/server.go
+- [ ] T063 [US2] Add timeout handling (60 seconds max) in tools/get_transaction_status.go
 
 ### Integration Tests for User Story 2
 
-- [ ] T063 [US2] Integration test: Poll transaction from Pending to Executed in tests/integration/status_polling_test.go
-- [ ] T064 [US2] Integration test: Verify status transitions are accurate in tests/integration/status_polling_test.go
-- [ ] T065 [US2] Integration test: Confirm 95% of transactions complete within 60 seconds in tests/integration/status_polling_test.go
+- [ ] T064 [US2] Integration test: Poll transaction from Pending to Executed in tests/integration/status_polling_test.go
+- [ ] T065 [US2] Integration test: Verify status transitions are accurate in tests/integration/status_polling_test.go
+- [ ] T066 [US2] Integration test: Confirm 95% of transactions complete within 60 seconds in tests/integration/status_polling_test.go
 
 **Checkpoint**: Transaction monitoring fully functional
 
@@ -195,24 +196,24 @@ Project root: `mcp-servers/circular-protocol-mcp-server/`
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T066 [P] [US3] Contract test: get_certification_proof JSON schema validation in tests/contract/get_certification_proof_test.go
-- [ ] T067 [P] [US3] Contract test: get_certification_proof with executed tx returns proof in tests/contract/get_certification_proof_test.go
-- [ ] T068 [P] [US3] Contract test: get_certification_proof with pending tx returns error in tests/contract/get_certification_proof_test.go
-- [ ] T069 [P] [US3] Contract test: get_certification_proof testnet URL points to testnet explorer in tests/contract/get_certification_proof_test.go
+- [ ] T067 [P] [US3] Contract test: get_certification_proof JSON schema validation in tests/contract/get_certification_proof_test.go
+- [ ] T068 [P] [US3] Contract test: get_certification_proof with executed tx returns proof in tests/contract/get_certification_proof_test.go
+- [ ] T069 [P] [US3] Contract test: get_certification_proof with pending tx returns error in tests/contract/get_certification_proof_test.go
+- [ ] T070 [P] [US3] Contract test: get_certification_proof testnet URL points to testnet explorer in tests/contract/get_certification_proof_test.go
 
 ### Implementation for User Story 3
 
-- [ ] T070 [P] [US3] Implement CertificationProof struct in internal/circular/proof.go
-- [ ] T071 [P] [US3] Implement explorer URL generation (testnet/mainnet) in internal/circular/proof.go
-- [ ] T072 [US3] Implement proof generation logic in internal/circular/proof.go
-- [ ] T073 [US3] Implement get_certification_proof MCP tool in tools/get_certification_proof.go
-- [ ] T074 [US3] Register get_certification_proof tool with MCP server in internal/server/server.go
-- [ ] T075 [US3] Add validation for executed status requirement in tools/get_certification_proof.go
+- [ ] T071 [P] [US3] Implement CertificationProof struct in internal/circular/proof.go
+- [ ] T072 [P] [US3] Implement explorer URL generation (testnet/mainnet) in internal/circular/proof.go
+- [ ] T073 [US3] Implement proof generation logic in internal/circular/proof.go
+- [ ] T074 [US3] Implement get_certification_proof MCP tool in tools/get_certification_proof.go
+- [ ] T075 [US3] Register get_certification_proof tool with MCP server in internal/server/server.go
+- [ ] T076 [US3] Add validation for executed status requirement in tools/get_certification_proof.go
 
 ### Integration Tests for User Story 3
 
-- [ ] T076 [US3] Integration test: Generate proof for testnet transaction and verify explorer URL in tests/integration/proof_generation_test.go
-- [ ] T077 [US3] Integration test: Verify proof contains all required fields (block_id, timestamp, explorer_url) in tests/integration/proof_generation_test.go
+- [ ] T077 [US3] Integration test: Generate proof for testnet transaction and verify explorer URL in tests/integration/proof_generation_test.go
+- [ ] T078 [US3] Integration test: Verify proof contains all required fields (block_id, timestamp, explorer_url) in tests/integration/proof_generation_test.go
 
 **Checkpoint**: All 4 MCP tools fully functional - complete certification workflow operational
 
@@ -224,37 +225,37 @@ Project root: `mcp-servers/circular-protocol-mcp-server/`
 
 ### Documentation & Examples
 
-- [ ] T078 [P] Create comprehensive README.md with installation, configuration, and usage in mcp-servers/circular-protocol-mcp-server/
-- [ ] T079 [P] Add code comments and godoc documentation to all exported functions
-- [ ] T080 [P] Verify quickstart.md examples work end-to-end in specs/003-circular-mcp-server/quickstart.md
+- [ ] T079 [P] Create comprehensive README.md with installation, configuration, and usage in mcp-servers/circular-protocol-mcp-server/
+- [ ] T080 [P] Add code comments and godoc documentation to all exported functions
+- [ ] T081 [P] Verify quickstart.md examples work end-to-end in specs/003-circular-mcp-server/quickstart.md
 
 ### Testing & Quality
 
-- [ ] T081 [P] Run all contract tests and verify 100% pass
-- [ ] T082 [P] Run all integration tests on testnet and verify 100% pass
-- [ ] T083 [P] Run all unit tests and measure code coverage (target: 90%+)
-- [ ] T084 [P] Add edge case tests for error handling scenarios in tests/unit/errors_test.go
-- [ ] T085 [P] Perform load testing: 100 concurrent tool invocations in tests/load/concurrent_test.go
+- [ ] T082 [P] Run all contract tests and verify 100% pass
+- [ ] T083 [P] Run all integration tests on testnet and verify 100% pass
+- [ ] T084 [P] Run all unit tests and measure code coverage: 90%+ overall baseline, 95%+ for critical paths (internal/circular/transaction.go, internal/circular/transaction_id.go, tools/certify_data.go, tools/get_transaction_status.go), 100% for security code (internal/circular/signer.go, internal/config/keys.go)
+- [ ] T085 [P] Add edge case tests for error handling scenarios in tests/unit/errors_test.go
+- [ ] T086 [P] Perform load testing: 100 concurrent tool invocations in tests/load/concurrent_test.go
 
 ### Security & Performance
 
-- [ ] T086 [P] Security audit: Verify no private keys or signatures in logs
-- [ ] T087 [P] Security audit: Verify constant-time cryptographic operations in tests/unit/signer_test.go
-- [ ] T088 [P] Performance: Verify tool calls respond within 5 seconds in tests/integration/performance_test.go
-- [ ] T089 [P] Performance: Verify NAG discovery caches URLs (not queried per request)
+- [ ] T087 [P] Security audit: Verify no private keys or signatures in logs
+- [ ] T088 [P] Security audit: Verify constant-time cryptographic operations in tests/unit/signer_test.go
+- [ ] T089 [P] Performance: Verify tool calls respond within 5 seconds in tests/integration/performance_test.go
+- [ ] T090 [P] Performance: Verify NAG discovery caches URLs (not queried per request)
 
 ### Configuration & Deployment
 
-- [ ] T090 [P] Create production config.yaml.example for mainnet
-- [ ] T091 [P] Add environment variable validation at startup in cmd/server/main.go
-- [ ] T092 [P] Add graceful shutdown handling in cmd/server/main.go
-- [ ] T093 [P] Build and test server binary: go build -o circular-mcp-server cmd/server/main.go
+- [ ] T091 [P] Create production config.yaml.example for mainnet
+- [ ] T092 [P] Add environment variable validation at startup in cmd/server/main.go
+- [ ] T093 [P] Add graceful shutdown handling in cmd/server/main.go
+- [ ] T094 [P] Build and test server binary: go build -o circular-mcp-server cmd/server/main.go
 
 ### Final Validation
 
-- [ ] T094 Run complete certification workflow on testnet (all 4 tools)
-- [ ] T095 Verify all success criteria from spec.md (SC-001 through SC-007)
-- [ ] T096 Update CLAUDE.md with final tech stack via .specify/scripts/bash/update-agent-context.sh
+- [ ] T095 Run complete certification workflow on testnet (all 4 tools)
+- [ ] T096 Verify all success criteria from spec.md (SC-001 through SC-007)
+- [ ] T097 Update CLAUDE.md with final tech stack via .specify/scripts/bash/update-agent-context.sh
 
 ---
 
@@ -370,13 +371,13 @@ Due to story dependencies, recommended order:
 
 Tasks explicitly designed to meet spec.md success criteria:
 
-- **SC-001** (60s certification time): T051 measures confirmation time
-- **SC-002** (100% execution rate): T081-T083 verify all tests pass
-- **SC-003** (95% within 60s): T065 confirms polling performance
-- **SC-004** (100% proof generation): T076-T077 validate proof generation
-- **SC-005** (All 4 tools pass tests): T081-T083 validate all tools
-- **SC-006** (Graceful error handling): T084 adds error handling tests
-- **SC-007** (Deterministic TX IDs): T052 validates TX ID calculation
+- **SC-001** (60s certification time): T052 measures confirmation time
+- **SC-002** (100% execution rate): T082-T084 verify all tests pass
+- **SC-003** (95% within 60s): T066 confirms polling performance
+- **SC-004** (100% proof generation): T077-T078 validate proof generation
+- **SC-005** (All 4 tools pass tests): T082-T084 validate all tools
+- **SC-006** (Graceful error handling): T085 adds error handling tests
+- **SC-007** (Deterministic TX IDs): T053 validates TX ID calculation
 
 ---
 
