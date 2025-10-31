@@ -104,7 +104,7 @@ As a developer building MCP servers and API handlers, I need reusable data model
 - **FR-009**: System MUST provide cache service with key-based storage and retrieval operations, falling back to direct operations if cache is unavailable
 - **FR-010**: System MUST configure Redis with allkeys-lru eviction policy to automatically evict least recently used keys when memory limits are reached
 - **FR-011**: System MUST provide shared data models for Request, Payment, and Certification entities with field validation
-- **FR-012**: System MUST provide cryptographic signing utilities compatible with Secp256k1 curve (for Circular Protocol compatibility)
+- **FR-012**: System MUST provide cryptographic signing utilities compatible with Secp256k1 curve (for Circular Protocol Enterprise APIs compatibility)
 - **FR-013**: System MUST provide custom error types for common failure scenarios (validation errors, network errors, blockchain errors)
 - **FR-014**: System MUST support both forward migrations (applying schema changes) and rollback migrations (reverting schema changes)
 - **FR-015**: System MUST create indexes on frequently queried fields (request_id, payment_nonce, client_id, status fields)
@@ -116,7 +116,7 @@ As a developer building MCP servers and API handlers, I need reusable data model
 
 - **Payment**: Represents a payment authorization for certification service. Links to a certification request and tracks payment lifecycle. Key attributes: payment nonce (for idempotency), source and destination addresses, amount in USDC, blockchain network, settlement transaction hash, payment status.
 
-- **Certification**: Represents a completed blockchain certification transaction on Circular Protocol. Links to a certification request and contains blockchain proof details. Key attributes: Circular Protocol transaction ID, block ID, CIRX fee paid, confirmation status, retry count for failed attempts.
+- **Certification**: Represents a completed blockchain certification transaction on Circular Protocol (via Enterprise APIs). Links to a certification request and contains blockchain proof details. Key attributes: Circular Protocol transaction ID, block ID, CIRX fee paid, confirmation status, retry count for failed attempts.
 
 - **Wallet Balance**: Represents the current balance of service wallets across different blockchain networks. Used for monitoring and alerting. Key attributes: asset type (e.g., CIRX), network identifier, wallet address, current balance, last update timestamp.
 

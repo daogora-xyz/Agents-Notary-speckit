@@ -6,14 +6,15 @@
 
   Milestone 3: Circular Protocol MCP Server (Week 2-3)
 
-  /speckit.specify Circular Protocol MCP server: Build MCP server using mcp-go with 4 tools for blockchain
-  certification operations. Tools: get_wallet_nonce (fetches current nonce via Circular_GetWalletNonce_ API),
-  certify_data (constructs C_TYPE_CERTIFICATE transaction with Secp256k1 signing, posts via Circular_AddTransaction_),
+  /speckit.specify Circular Protocol Enterprise API MCP server: Build MCP server using mcp-go with 4 tools for blockchain
+  certification operations using Circular Protocol Enterprise APIs (Go implementation from docs/GO-CEP-APIS.xml). Tools:
+  get_wallet_nonce (fetches current nonce via Circular_GetWalletNonce_ Enterprise API endpoint), certify_data (constructs
+  C_TYPE_CERTIFICATE transaction with Secp256k1 signing, posts via Circular_AddTransaction_ Enterprise API endpoint),
   get_transaction_status (polls transaction status until "Executed"), get_certification_proof (extracts block ID,
-  timestamp, generates explorer URL). Must handle Circular Protocol HTTP REST API, implement transaction ID calculation
-   (sha256 of From+To+Payload+Timestamp), support testnet and mainnet. Testing: end-to-end certification on testnet,
-  measure confirmation time. Reference: docs/OVERVIEW.md Milestone 3 (Week 2-3), Section 2.3.2 tool schemas, Tasks
-  T012-T017.
+  timestamp, generates explorer URL). Must use Circular Protocol Enterprise HTTP REST API endpoints, implement client-side
+  transaction ID calculation (sha256 of Blockchain+From+To+Payload+Nonce+Timestamp as per Enterprise APIs pattern), support
+  testnet and mainnet. Testing: end-to-end certification on testnet, measure confirmation time. Reference: docs/OVERVIEW.md
+  Milestone 3 (Week 2-3), docs/GO-CEP-APIS.xml (Enterprise API reference), Section 2.3.2 tool schemas, Tasks T012-T017.
 
   Milestone 4: Data Quote & QR Code MCP Servers (Week 3)
 
@@ -29,7 +30,7 @@
   Milestone 5: MCP Host Proxy Core (Week 4)
 
   /speckit.specify certify.ar4s.com MCP Host proxy core infrastructure: Initialize HTTP server using Gin or Echo with
-  health check endpoint /health. Implement MCP client layer connecting to all 4 MCP servers (x402, circular-protocol,
+  health check endpoint /health. Implement MCP client layer connecting to all 4 MCP servers (x402, circular-protocol-enterprise,
   data-quote, qr-code) via stdio transport with connection pooling and automatic reconnection. Build database layer
   with PostgreSQL connection pool and CRUD operations for certification_requests, payments, certifications tables.
   Implement Redis layer with cache functions for CIRX price (5 min TTL) and payment status. Create middleware:
@@ -56,7 +57,7 @@
   /speckit.specify Certification workflow orchestration with state machine: Implement state machine with states
   (initiated, quoted, payment_pending, payment_verified, certifying, completed, failed) and transition validation,
   store state in database, emit state change events for monitoring. Build certification workflow: after payment
-  settled, call circular-protocol-mcp.get_wallet_nonce, sign transaction locally with service wallet, call
+  settled, call circular-protocol-enterprise-mcp.get_wallet_nonce, sign transaction locally with service wallet, call
   certify_data, poll get_transaction_status until "Executed" or timeout (30s), call get_certification_proof, update
   database, trigger webhook callback if provided. Implement retry queue as background goroutine: scan for failed
   certifications, exponential backoff (5s, 10s, 20s, 40s, max 60s), max 10 attempts, move to dead letter queue after
@@ -101,9 +102,9 @@
   HorizontalPodAutoscaler for auto-scaling, test on local minikube. Build GitHub Actions CI/CD pipelines:
   .github/workflows/ci.yaml (run tests on PR, lint with golangci-lint, build Docker images, verify coverage),
   .github/workflows/deploy.yaml (deploy to staging on merge to main, deploy to production on tag release, run smoke
-  tests). Deploy to testnet staging environment using base-sepolia and Circular Protocol testnet, run smoke tests,
+  tests). Deploy to testnet staging environment using base-sepolia and Circular Protocol Enterprise APIs testnet, run smoke tests,
   verify monitoring dashboards. Deploy to mainnet production: purchase CIRX for production wallet, update config for
-  mainnet networks (base, arbitrum, circular-mainnet), deploy, run smoke tests, monitor for 24 hours. Finalize
+  mainnet networks (base, arbitrum, circular-mainnet via Enterprise APIs), deploy, run smoke tests, monitor for 24 hours. Finalize
   documentation: API.md (OpenAPI spec), DEPLOYMENT.md (deployment procedures), RUNBOOK.md (operations procedures),
   update README.md. Success: production running, all 3 user workflows functional (agent, browser, mobile), monitoring
   active. Reference: docs/OVERVIEW.md Milestone 10 (Week 8), Tasks T049-T054.
