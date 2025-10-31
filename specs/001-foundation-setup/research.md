@@ -154,7 +154,7 @@ rdb := redis.NewClient(&redis.Options{
 
 ### Requirement
 - Must implement Secp256k1 elliptic curve (Bitcoin/Ethereum standard)
-- Must be compatible with Circular Protocol's signing requirements
+- Must be compatible with Circular Protocol Enterprise APIs signing requirements
 - Must support signing and signature verification
 - Must be well-tested (blockchain-grade reliability)
 - Must complete signing in < 100ms (per spec: SC-006)
@@ -172,7 +172,7 @@ rdb := redis.NewClient(&redis.Options{
 **Rationale**:
 - **Proven**: Used by Bitcoin full node implementation (btcd), audited and battle-tested
 - **Performance**: Sub-1ms signing on modern hardware (well under 100ms requirement)
-- **Circular Protocol Compatibility**: Secp256k1 is the same curve used by Bitcoin, Ethereum, and Circular Protocol - ensures signature interoperability
+- **Circular Protocol Enterprise APIs Compatibility**: Secp256k1 is the same curve used by Bitcoin, Ethereum, and Circular Protocol Enterprise APIs - ensures signature interoperability
 - **API Simplicity**:
   ```go
   import "github.com/btcsuite/btcd/btcec/v2"
@@ -239,7 +239,7 @@ rdb := redis.NewClient(&redis.Options{
 | Migration Framework | **golang-migrate/migrate** | Industry standard with CLI + library, built-in concurrency locks |
 | PostgreSQL Driver | **jackc/pgx** | Best performance, rich error types, modern connection pooling |
 | Redis Client | **go-redis/redis** | Most popular, easy graceful degradation, excellent docs |
-| Secp256k1 Crypto | **btcsuite/btcd/btcec/v2** | Bitcoin-grade reliability, Circular Protocol compatible |
+| Secp256k1 Crypto | **btcsuite/btcd/btcec/v2** | Bitcoin-grade reliability, Circular Protocol Enterprise APIs compatible |
 | Testing Framework | **testify + dockertest** | Standard Go assertions + lightweight Docker container management |
 
 ---

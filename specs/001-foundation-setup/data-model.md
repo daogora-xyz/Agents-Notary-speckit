@@ -266,7 +266,7 @@ func (p *Payment) Validate() error {
 
 ### Table 3: `certifications`
 
-**Purpose**: Records completed blockchain certification transactions on Circular Protocol.
+**Purpose**: Records completed blockchain certification transactions on Circular Protocol (via Enterprise APIs).
 
 **Schema**:
 ```sql

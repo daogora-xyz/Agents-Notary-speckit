@@ -20,7 +20,7 @@ Establish the foundational infrastructure for the blockchain certification platf
 - golang-migrate/migrate (database migrations)
 - lib/pq or pgx (PostgreSQL driver)
 - go-redis/redis (Redis client with graceful fallback)
-- btcsuite/btcd/btcec/v2 (Secp256k1 cryptography for Circular Protocol compatibility)
+- btcsuite/btcd/btcec/v2 (Secp256k1 cryptography for Circular Protocol Enterprise APIs compatibility)
 - Docker Compose (service orchestration)
 
 **Storage**: PostgreSQL 16+ with connection pooling (max 50 connections), Redis 7+ with allkeys-lru eviction policy
@@ -73,8 +73,8 @@ Establish the foundational infrastructure for the blockchain certification platf
 - ✅ Foundation includes error types for future logging categorization
 
 ### Principle VI: Blockchain Integration Standards ✅ PASS
-- ✅ Secp256k1 crypto utilities match Circular Protocol signing requirements
-- ✅ Data models prepared for Circular Protocol transaction fields (cirx_tx_id, cirx_block_id)
+- ✅ Secp256k1 crypto utilities match Circular Protocol Enterprise APIs signing requirements
+- ✅ Data models prepared for Circular Protocol Enterprise API transaction fields (cirx_tx_id, cirx_block_id)
 - ✅ Payment nonce uniqueness enforced at database level
 
 **Overall Status**: ✅ PASS - No constitution violations. Observability deferred appropriately to Milestone 8.
@@ -119,7 +119,7 @@ pkg/
 │   ├── certification.go # Certification model + validation
 │   └── wallet.go        # WalletBalance model + validation
 ├── crypto/
-│   ├── secp256k1.go     # Circular Protocol signing utilities
+│   ├── secp256k1.go     # Circular Protocol Enterprise APIs signing utilities
 │   └── secp256k1_test.go
 └── errors/
     ├── types.go         # Custom error types (Validation, Network, Blockchain, Payment)
@@ -165,7 +165,7 @@ See [research.md](./research.md) for detailed technology selection rationale.
 1. **Migration Framework**: golang-migrate/migrate - Industry standard, supports PostgreSQL and rollbacks, CLI + Go library
 2. **PostgreSQL Driver**: pgx - Modern, high-performance, supports connection pooling, better error handling than lib/pq
 3. **Redis Client**: go-redis/redis - Most popular Go Redis client, supports graceful connection handling
-4. **Secp256k1 Library**: btcsuite/btcd/btcec/v2 - Bitcoin-grade cryptography, well-tested, compatible with Circular Protocol
+4. **Secp256k1 Library**: btcsuite/btcd/btcec/v2 - Bitcoin-grade cryptography, well-tested, compatible with Circular Protocol Enterprise APIs
 5. **Testing**: testify/assert + dockertest - Standard Go testing with Docker container lifecycle management
 
 ---

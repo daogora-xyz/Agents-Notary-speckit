@@ -119,12 +119,14 @@ Follow-up TODOs: None - all placeholders filled
 
 ### VI. Blockchain Integration Standards
 
-**Circular Protocol:**
+**Circular Protocol Enterprise APIs:**
+- MUST use Circular Protocol Enterprise APIs (Go implementation pattern from docs/GO-CEP-APIS.xml)
 - Transactions MUST use Type="C_TYPE_CERTIFICATE"
-- Nonce MUST be fetched immediately before each transaction to prevent desync
-- Transaction signing MUST use Secp256k1 (matching Circular Protocol)
+- Nonce MUST be fetched from Enterprise API immediately before each transaction to prevent desync
+- Transaction ID MUST be calculated client-side: SHA-256(Blockchain + From + To + Payload + Nonce + Timestamp)
+- Transaction signing MUST use Secp256k1 (matching Circular Protocol Enterprise APIs)
 - CIRX fee is fixed at 4 CIRX per certification
-- Transaction status MUST be polled until "Executed" or timeout (30 seconds)
+- Transaction status MUST be polled via Enterprise API until "Executed" or timeout (30 seconds)
 - Failed certifications MUST enter retry queue (exponential backoff, max 10 attempts)
 
 **x402 Payment Protocol:**

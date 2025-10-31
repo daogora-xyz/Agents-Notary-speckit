@@ -9,7 +9,7 @@
 
 ## Executive Summary
 
-**certify.ar4s.com** is an MCP Host proxy service that enables ANY LLM (regardless of native MCP support) to certify data on the Circular Protocol blockchain with automatic payment handling via x402. The service acts as a universal gateway, supporting three distinct user workflows: AI agents (programmatic), browser users (wallet extensions), and mobile users (QR codes).
+**certify.ar4s.com** is an MCP Host proxy service that enables ANY LLM (regardless of native MCP support) to certify data on the Circular Protocol blockchain using Enterprise APIs (Go implementation, see docs/GO-CEP-APIS.xml) with automatic payment handling via x402. The service acts as a universal gateway, supporting three distinct user workflows: AI agents (programmatic), browser users (wallet extensions), and mobile users (QR codes).
 
 ### Core Value Proposition
 Transform any LLM into a blockchain-capable entity without requiring:
@@ -70,7 +70,7 @@ Any LLM (GPT-4, Gemini, Claude, etc.)
 - [ ] Agent can sign EIP-3009 authorization using private key
 - [ ] Agent retries POST `/v1/certify` with X-PAYMENT header
 - [ ] Payment is verified and settled on-chain within 2 seconds
-- [ ] Certification is submitted to Circular Protocol within 5 seconds
+- [ ] Certification is submitted to Circular Protocol via Enterprise APIs within 5 seconds
 - [ ] Response includes certification proof (tx hash, block number, timestamp)
 - [ ] All operations complete in < 10 seconds (happy path)
 
@@ -173,11 +173,13 @@ Any LLM (GPT-4, Gemini, Claude, etc.)
 - Handle MCP server disconnections and reconnects
 - Implement connection pooling for performance
 
-#### FR-004: Circular Protocol Integration
+#### FR-004: Circular Protocol Enterprise API Integration
+- Use Circular Protocol Enterprise APIs (Go implementation pattern from docs/GO-CEP-APIS.xml)
 - Maintain hot wallet for signing certification transactions
-- Fetch wallet nonce before each transaction
-- Sign transactions using Secp256k1 (matches Circular Protocol)
-- Submit certification transactions with Type="C_TYPE_CERTIFICATE"
+- Fetch wallet nonce before each transaction via Enterprise API endpoint
+- Sign transactions using Secp256k1 (matches Circular Protocol Enterprise APIs)
+- Calculate transaction ID client-side: SHA-256(Blockchain+From+To+Payload+Nonce+Timestamp)
+- Submit certification transactions with Type="C_TYPE_CERTIFICATE" via Enterprise API
 - Poll transaction status until "Executed" or timeout
 - Pay 4 CIRX flat fee per certification
 
@@ -306,29 +308,29 @@ Any LLM (GPT-4, Gemini, Claude, etc.)
                              │ MCP Protocol (stdio)
         ┌────────────────────┼────────────────────┐
         │                    │                    │
-┌───────▼──────────┐ ┌───────▼──────────┐ ┌──────▼────────────┐
-│ x402-mcp-server  │ │circular-protocol │ │data-quote-mcp     │
-│ (Go + mcp-go)    │ │-mcp-server       │ │-server            │
-│                  │ │(Go + mcp-go)     │ │(Go + mcp-go)      │
-│ Tools:           │ │                  │ │                   │
-│ -create_payment  │ │Tools:            │ │Tools:             │
-│ -verify_payment  │ │-get_nonce        │ │-check_size        │
-│ -settle_payment  │ │-certify_data     │ │-get_cirx_price    │
-│ -browser_link    │ │-get_tx_status    │ │-calculate_quote   │
-│ -encode_for_qr   │ │-get_proof        │ │                   │
-└────────┬─────────┘ └────────┬─────────┘ └────────┬──────────┘
-         │                    │                     │
-         │                    │                     │
-┌────────▼─────────┐ ┌────────▼──────────┐ ┌───────▼───────────┐
-│ qr-code-mcp      │ │ x402 Facilitator  │ │ Circular Protocol │
-│ -server          │ │ (x402.org)        │ │ Blockchain        │
-│ (Go + mcp-go)    │ │                   │ │ (REST API)        │
-│                  │ │ Wraps:            │ │                   │
-│ Tools:           │ │ - EIP-3009 calls  │ │ Endpoints:        │
-│ -generate_ascii  │ │ - Blockchain      │ │ - AddTransaction  │
-│ -generate_image  │ │   settlement      │ │ - GetWalletNonce  │
-│ -encode_x402     │ │                   │ │ - GetTransaction  │
-└──────────────────┘ └───────────────────┘ └───────────────────┘
+┌───────▼──────────┐ ┌───────▼───────────────┐ ┌──────▼────────────┐
+│ x402-mcp-server  │ │circular-protocol      │ │data-quote-mcp     │
+│ (Go + mcp-go)    │ │-enterprise-mcp-server │ │-server            │
+│                  │ │(Go + mcp-go)          │ │(Go + mcp-go)      │
+│ Tools:           │ │                       │ │                   │
+│ -create_payment  │ │Tools:                 │ │Tools:             │
+│ -verify_payment  │ │-get_nonce             │ │-check_size        │
+│ -settle_payment  │ │-certify_data          │ │-get_cirx_price    │
+│ -browser_link    │ │-get_tx_status         │ │-calculate_quote   │
+│ -encode_for_qr   │ │-get_proof             │ │                   │
+└────────┬─────────┘ └────────┬──────────────┘ └────────┬──────────┘
+         │                    │                         │
+         │                    │                         │
+┌────────▼─────────┐ ┌────────▼──────────┐ ┌───────▼──────────────────┐
+│ qr-code-mcp      │ │ x402 Facilitator  │ │ Circular Protocol        │
+│ -server          │ │ (x402.org)        │ │ Enterprise APIs          │
+│ (Go + mcp-go)    │ │                   │ │ (HTTP REST)              │
+│                  │ │ Wraps:            │ │                          │
+│ Tools:           │ │ - EIP-3009 calls  │ │ Enterprise Endpoints:    │
+│ -generate_ascii  │ │ - Blockchain      │ │ - Circular_AddTransaction│
+│ -generate_image  │ │   settlement      │ │ - Circular_GetWalletNonce│
+│ -encode_x402     │ │                   │ │ - Circular_GetTransaction│
+└──────────────────┘ └───────────────────┘ └──────────────────────────┘
 ```
 
 ---
@@ -338,8 +340,8 @@ Any LLM (GPT-4, Gemini, Claude, etc.)
 #### 2.2.1 Happy Path: Agent Payment Workflow
 
 ```
-LLM Agent  certify.ar4s.com  data-quote  x402-mcp  circular-mcp  Facilitator  Circular API
-    │              │              │           │           │            │              │
+LLM Agent  certify.ar4s.com  data-quote  x402-mcp  circular-ent-mcp  Facilitator  Circular Enterprise API
+    │              │              │           │           │               │              │
     │ POST /certify│              │           │           │            │              │
     ├──────────────>              │           │           │            │              │
     │              │ check_size() │           │           │            │              │
@@ -703,13 +705,13 @@ CREATE UNIQUE INDEX idx_asset_network ON wallet_balances(asset, network);
 }
 ```
 
-**circular-protocol-mcp-server Tools:**
+**circular-protocol-enterprise-mcp-server Tools:**
 
 1. `get_wallet_nonce`
 ```json
 {
   "name": "get_wallet_nonce",
-  "description": "Get current nonce for a Circular Protocol wallet",
+  "description": "Get current nonce for a Circular Protocol Enterprise API wallet",
   "inputSchema": {
     "type": "object",
     "properties": {
@@ -728,7 +730,7 @@ CREATE UNIQUE INDEX idx_asset_network ON wallet_balances(asset, network);
 ```json
 {
   "name": "certify_data",
-  "description": "Submit certification transaction to Circular Protocol",
+  "description": "Submit certification transaction to Circular Protocol via Enterprise API",
   "inputSchema": {
     "type": "object",
     "properties": {
@@ -752,7 +754,7 @@ CREATE UNIQUE INDEX idx_asset_network ON wallet_balances(asset, network);
 ```json
 {
   "name": "get_transaction_status",
-  "description": "Poll Circular Protocol transaction status",
+  "description": "Poll Circular Protocol transaction status via Enterprise API",
   "inputSchema": {
     "type": "object",
     "properties": {
@@ -971,7 +973,7 @@ CREATE UNIQUE INDEX idx_asset_network ON wallet_balances(asset, network);
     "payTo": "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb",
     "maxTimeoutSeconds": 300,
     "resource": "https://certify.ar4s.com/v1/certify",
-    "description": "Certify data on Circular Protocol"
+    "description": "Certify data on Circular Protocol via Enterprise APIs"
   },
   "payment_options": {
     "agent": {
@@ -1055,7 +1057,7 @@ Headers: `X-PAYMENT: base64_encoded_payment_payload`
   "status": "failed",
   "error": {
     "code": "CIRCULAR_TX_FAILED",
-    "message": "Circular Protocol transaction failed: insufficient balance",
+    "message": "Circular Protocol Enterprise API transaction failed: insufficient balance",
     "retryable": true,
     "retry_after": "2025-10-28T12:40:00Z"
   },
@@ -1126,7 +1128,7 @@ Headers: `X-PAYMENT: base64_encoded_payment_payload`
 ---
 
 #### Certification Failures (Critical Path)
-**Error:** Circular Protocol certification fails AFTER payment settled
+**Error:** Circular Protocol Enterprise API certification fails AFTER payment settled
 
 **Handling:**
 1. Store certification record with `status='failed'`
@@ -1143,8 +1145,8 @@ Headers: `X-PAYMENT: base64_encoded_payment_payload`
      - Credit user account
 
 **Common Causes:**
-- Nonce desync (fetch fresh nonce before retry)
-- Circular Protocol network congestion (wait and retry)
+- Nonce desync (fetch fresh nonce from Enterprise API before retry)
+- Circular Protocol Enterprise API network congestion (wait and retry)
 - Service wallet out of CIRX (alert operator immediately)
 - Invalid transaction format (requires code fix)
 
@@ -1638,16 +1640,16 @@ certify-ar4s/
 
 ---
 
-#### Milestone 3: MCP Server - Circular Protocol (Week 2-3)
-**Goal:** Build Circular Protocol MCP server
+#### Milestone 3: MCP Server - Circular Protocol Enterprise APIs (Week 2-3)
+**Goal:** Build Circular Protocol Enterprise API MCP server (using Go implementation pattern from docs/GO-CEP-APIS.xml)
 
-**TASK-012: circular-protocol-mcp-server Setup**
+**TASK-012: circular-protocol-enterprise-mcp-server Setup**
 - [ ] Initialize server with mcp-go
-- [ ] Implement Circular Protocol HTTP API client
-- [ ] Test connectivity to testnet
+- [ ] Implement Circular Protocol Enterprise HTTP REST API client
+- [ ] Test connectivity to Enterprise API testnet endpoints
 
 **TASK-013: Tool - get_wallet_nonce**
-- [ ] Implement `GET Circular_GetWalletNonce_` API call
+- [ ] Implement `GET Circular_GetWalletNonce_` Enterprise API call
 - [ ] Parse response (nonce value)
 - [ ] Handle API errors
 - [ ] Write unit tests with mock API
@@ -1656,24 +1658,24 @@ certify-ar4s/
 - [ ] Construct transaction payload:
   - Type: "C_TYPE_CERTIFICATE"
   - Payload: `{"Action":"CP_CERTIFICATE","Data":"<hex_encoded_hash>"}`
-- [ ] Calculate transaction ID: `sha256(From + To + Payload + Timestamp)`
+- [ ] Calculate transaction ID client-side: `sha256(Blockchain + From + To + Payload + Nonce + Timestamp)` (as per Enterprise APIs pattern)
 - [ ] Sign transaction ID with Secp256k1
-- [ ] POST `Circular_AddTransaction_`
+- [ ] POST `Circular_AddTransaction_` Enterprise API endpoint
 - [ ] Write unit tests with mock signing
 
 **TASK-015: Tool - get_transaction_status**
-- [ ] Implement `GET transaction by ID` API call
+- [ ] Implement `GET transaction by ID` Enterprise API call
 - [ ] Parse status field ("Executed", "Pending")
 - [ ] Write unit tests
 
 **TASK-016: Tool - get_certification_proof**
-- [ ] Fetch full transaction details
+- [ ] Fetch full transaction details from Enterprise API
 - [ ] Extract block ID, timestamp, payload
 - [ ] Generate verification URL (block explorer)
 - [ ] Write unit tests
 
-**TASK-017: circular-protocol-mcp-server Integration Testing**
-- [ ] End-to-end test on Circular Protocol testnet
+**TASK-017: circular-protocol-enterprise-mcp-server Integration Testing**
+- [ ] End-to-end test on Circular Protocol Enterprise API testnet
 - [ ] Submit actual certification transaction
 - [ ] Verify on explorer
 - [ ] Measure confirmation time
@@ -1824,11 +1826,11 @@ certify-ar4s/
 - [ ] Write unit tests
 
 **TASK-037: Certification Workflow**
-- [ ] After payment settled, call `circular-protocol-mcp.get_wallet_nonce`
+- [ ] After payment settled, call `circular-protocol-enterprise-mcp.get_wallet_nonce`
 - [ ] Sign certification transaction locally
-- [ ] Call `circular-protocol-mcp.certify_data`
-- [ ] Poll `circular-protocol-mcp.get_transaction_status` until "Executed"
-- [ ] Call `circular-protocol-mcp.get_certification_proof`
+- [ ] Call `circular-protocol-enterprise-mcp.certify_data`
+- [ ] Poll `circular-protocol-enterprise-mcp.get_transaction_status` until "Executed"
+- [ ] Call `circular-protocol-enterprise-mcp.get_certification_proof`
 - [ ] Update database records
 - [ ] Trigger webhook callback if provided
 - [ ] Write integration tests
@@ -1947,7 +1949,7 @@ certify-ar4s/
 
 **TASK-052: Testnet Deployment**
 - [ ] Deploy to staging environment
-- [ ] Use base-sepolia, Circular Protocol testnet
+- [ ] Use base-sepolia, Circular Protocol Enterprise API testnet
 - [ ] Run smoke tests
 - [ ] Verify monitoring works
 
@@ -1995,11 +1997,12 @@ certify-ar4s/
 
 - **MCP (Model Context Protocol):** Protocol for LLMs to interact with external tools
 - **MCP Host:** Application that connects to MCP servers (certify.ar4s.com)
-- **MCP Server:** Service providing tools via MCP (x402, circular-protocol, etc.)
+- **MCP Server:** Service providing tools via MCP (x402, circular-protocol-enterprise, etc.)
 - **x402:** HTTP payment protocol using 402 status code
 - **EIP-3009:** Ethereum standard for gasless token transfers via signed authorization
 - **CIRX:** Native token of Circular Protocol blockchain
-- **Circular Protocol:** Layer 1 blockchain for data certification
+- **Circular Protocol:** Layer 1 blockchain for data certification (accessed via Enterprise APIs)
+- **Enterprise APIs:** Circular Protocol's HTTP REST APIs for blockchain interaction (Go implementation pattern)
 - **Facilitator:** Service that settles x402 payments on blockchain
 - **Idempotency:** Property ensuring duplicate requests return same result without side effects
 
@@ -2013,7 +2016,7 @@ certify-ar4s/
 | Database | PostgreSQL 16+ | Persistent storage |
 | Cache | Redis 7+ | Price cache, rate limiting |
 | Blockchain (EVM) | go-ethereum (geth) | EVM chain interactions |
-| Blockchain (Circular) | HTTP REST API | Circular Protocol integration |
+| Blockchain (Circular) | Enterprise HTTP REST API | Circular Protocol Enterprise API integration (Go pattern) |
 | Monitoring | Prometheus + Grafana | Metrics and dashboards |
 | Logging | Zap | Structured logging |
 | Tracing | OpenTelemetry | Distributed tracing |
@@ -2024,14 +2027,14 @@ certify-ar4s/
 
 **Required Services:**
 - x402 facilitator: `https://x402.org/facilitator`
-- Circular Protocol API: `https://api.circular-protocol.org` (TBD)
+- Circular Protocol Enterprise API: NAG URL discovery endpoint (see docs/GO-CEP-APIS.xml)
 - CoinGecko API: `https://api.coingecko.com/api/v3`
 
 **Blockchain Networks:**
 - Base Sepolia (testnet): Chain ID 84532
 - Base Mainnet: Chain ID 8453
 - Arbitrum: Chain ID 42161
-- Circular Protocol: Custom L1
+- Circular Protocol: Custom L1 (accessed via Enterprise APIs - testnet/mainnet)
 
 **Required Credentials:**
 - Service wallet (CIRX): Private key for signing certifications
@@ -2078,7 +2081,7 @@ certify-ar4s/
 |------|--------|------------|------------|
 | CIRX price volatility | Medium | High | Update pricing frequently, maintain margin buffer |
 | x402 facilitator downtime | High | Low | Queue requests, retry logic, alert operators |
-| Circular Protocol network issues | High | Low | Retry queue, dead letter queue, operator intervention |
+| Circular Protocol Enterprise API issues | High | Low | Retry queue, dead letter queue, operator intervention |
 | Payment succeeds but cert fails | Critical | Medium | Robust retry logic, operator dashboard, refund process |
 | Security breach (wallet key theft) | Critical | Low | Encrypted storage, Vault integration, monitoring |
 
@@ -2093,7 +2096,7 @@ certify-ar4s/
 
 **Next Steps:**
 1. ✅ Review and approve specification
-2. ⏳ Validate external dependencies (x402 facilitator, Circular Protocol APIs)
+2. ⏳ Validate external dependencies (x402 facilitator, Circular Protocol Enterprise APIs)
 3. ⏳ Set up development environment
 4. ⏳ Begin Milestone 1 implementation
 
