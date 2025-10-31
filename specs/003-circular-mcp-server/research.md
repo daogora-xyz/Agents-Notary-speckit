@@ -49,22 +49,39 @@ This document resolves all unknowns identified in plan.md Phase 0 research. The 
 - Call a Smart Contract Function
 - Get Block(s), Asset(s), Domain(s)
 
-**Base URL**: Not explicitly documented in public sources. The PHP SDK uses configurable base URLs based on network selection (testnet, devnet, mainnet). We will need to either:
-- Use the PHP/Python/Java SDK source code as reference
-- Contact Circular Protocol for REST API base URLs
-- Reverse-engineer from SDK network configuration
+**Base URL Discovery (NAG)**: Enterprise APIs use **Network Access Gateway (NAG)** for dynamic URL discovery.
+
+**NAG Discovery Process** (from docs/GO-CEP-APIS.xml):
+1. Query NAG endpoint: `https://circularlabs.io/network/getNAG?network={testnet|mainnet}`
+2. Parse response: `{"status": "success", "url": "https://nag.circularlabs.io/NAG.php?cep="}`
+3. Construct API endpoints: `{NAG_URL}Circular_{MethodName}_{network}`
+
+**Example Endpoints**:
+- Get Wallet Nonce: `https://nag.circularlabs.io/NAG.php?cep=Circular_GetWalletNonce_testnet`
+- Add Transaction: `https://nag.circularlabs.io/NAG.php?cep=Circular_AddTransaction_testnet`
+- Get Transaction: `https://nag.circularlabs.io/NAG.php?cep=Circular_GetTransactionbyID_testnet`
+
+**Testnet Configuration**:
+- **Sandbox Blockchain ID**: `0x8a20baa40c45dc5055aeb26197c203e576ef389d9acb171bd62da11dc5ad72b2`
+- **NAG Discovery URL**: `https://circularlabs.io/network/getNAG`
+- **Network Parameter**: `testnet` (for development/testing)
+
+**Mainnet Configuration**:
+- **Blockchain ID**: Discovered via NAG or configured as `mainnet`
+- **NAG Discovery URL**: `https://circularlabs.io/network/getNAG`
+- **Network Parameter**: `mainnet` (for production)
 
 **Authentication**:
 - Uses **secp256k1 private key signing** for transaction authentication
-- No API keys or OAuth tokens mentioned
+- No API keys or OAuth tokens required
 - Transactions are signed client-side before submission
 
 **Rate Limits**: Not documented in available sources.
 
 **Decision for Implementation**:
-1. **Primary**: Examine PHP SDK source code (packagist.org/packages/circularprotocol/circular-enterprise-apis) to extract REST endpoint patterns
-2. **Fallback**: Use GitHub CircularJS (https://github.com/CircularProtocol/CircularJS) to identify API base URLs
-3. **Go Implementation**: Create `internal/circular/client.go` as HTTP REST client (similar to x402's facilitator client)
+1. **Primary**: Use NAG discovery at server startup to fetch base URLs dynamically
+2. **Testnet**: Use sandbox blockchain ID `0x8a20baa40c45dc5055aeb26197c203e576ef389d9acb171bd62da11dc5ad72b2`
+3. **Go Implementation**: Create `internal/circular/client.go` as HTTP REST client with NAG discovery (similar to x402's facilitator client)
 
 ---
 

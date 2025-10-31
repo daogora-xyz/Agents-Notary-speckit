@@ -53,24 +53,36 @@ This guide provides step-by-step instructions for setting up and using the Circu
 Create a `.env` file in the project root:
 
 ```bash
-# Circular Protocol Testnet Configuration
-CIRCULAR_TESTNET_URL="https://api.testnet.circularlabs.io"  # TBD: Confirm base URL
-CIRCULAR_TESTNET_ADDRESS="0xYourTestnetWalletAddress"
-CIRCULAR_PRIVATE_KEY="0xYourPrivateKeyHex"  # Used for transaction signing
+# Circular Protocol Enterprise API (CEP) - Testnet/Development Configuration
+CIRCULAR_CEP_TESTNET_PRIVATE_KEY=your_testnet_private_key_hex
+CIRCULAR_CEP_TESTNET_SEED_PHRASE=your twelve word seed phrase here
+CIRCULAR_CEP_TESTNET_BLOCKCHAIN_ID=0x8a20baa40c45dc5055aeb26197c203e576ef389d9acb171bd62da11dc5ad72b2
+CIRCULAR_CEP_NAG_DISCOVERY_URL=https://circularlabs.io/network/getNAG
 
-# Circular Protocol Mainnet Configuration (Optional)
-CIRCULAR_MAINNET_URL="https://api.circularlabs.io"  # TBD: Confirm base URL
-CIRCULAR_MAINNET_ADDRESS="0xYourMainnetWalletAddress"
+# Circular Protocol Enterprise API - Mainnet Configuration (Optional)
+CIRCULAR_CEP_MAINNET_PRIVATE_KEY=your_mainnet_private_key_hex
+CIRCULAR_CEP_MAINNET_BLOCKCHAIN_ID=mainnet  # Will be discovered via NAG
 
 # Server Configuration
-LOG_LEVEL="info"  # Options: debug, info, warn, error
+CIRCULAR_CEP_NETWORK=testnet  # Options: testnet, mainnet
+LOG_LEVEL=info  # Options: debug, info, warn, error
 ```
+
+**Network Configuration Details**:
+- **NAG (Network Access Gateway)**: Enterprise APIs use dynamic URL discovery via `getNAG` endpoint
+  - Query: `https://circularlabs.io/network/getNAG?network=testnet`
+  - Returns: `{"status": "success", "url": "https://nag.circularlabs.io/NAG.php?cep="}`
+- **Sandbox Blockchain ID**: `0x8a20baa40c45dc5055aeb26197c203e576ef389d9acb171bd62da11dc5ad72b2` (testnet)
+- **API Endpoint Pattern**: `{NAG_URL}Circular_{MethodName}_{network}`
+  - Example: `Circular_GetWalletNonce_testnet`
+  - Example: `Circular_AddTransaction_testnet`
 
 **Security Warning**:
 - ⚠️ **NEVER commit `.env` file to version control**
-- ⚠️ Add `.env` to `.gitignore`
+- ⚠️ Add `.env` to `.gitignore` (already configured in this project)
 - ⚠️ Use different private keys for testnet and mainnet
 - ⚠️ Restrict file permissions: `chmod 600 .env`
+- ⚠️ Testnet credentials are for development only
 
 ---
 

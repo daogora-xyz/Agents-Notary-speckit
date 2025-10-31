@@ -374,9 +374,13 @@ type NetworkConfig struct {
     Name        string `yaml:"name" json:"name"`               // "Circular Testnet"
     NetworkID   string `yaml:"network_id" json:"network_id"`   // "testnet" | "mainnet"
 
-    // API Endpoints
-    BaseURL     string `yaml:"base_url" json:"base_url"`       // REST API base URL
-    ExplorerURL string `yaml:"explorer_url" json:"explorer_url"` // Blockchain explorer
+    // Enterprise API Endpoints (NAG Discovery)
+    NAGDiscoveryURL string `yaml:"nag_discovery_url" json:"nag_discovery_url"` // NAG URL discovery endpoint
+    BaseURL         string `yaml:"base_url" json:"base_url"`                   // Discovered REST API base URL
+    ExplorerURL     string `yaml:"explorer_url" json:"explorer_url"`           // Blockchain explorer
+
+    // Blockchain Identification
+    BlockchainID string `yaml:"blockchain_id" json:"blockchain_id"` // Testnet sandbox or mainnet ID
 
     // Wallet Configuration
     PayeeAddress string `yaml:"payee_address" json:"payee_address"` // Default sender address
@@ -396,23 +400,33 @@ type Config struct {
 ```yaml
 networks:
   circular-testnet:
-    name: "Circular Testnet"
+    name: "Circular Testnet (Sandbox)"
     network_id: "testnet"
-    base_url: "${CIRCULAR_TESTNET_URL}"  # From environment variable
+    nag_discovery_url: "https://circularlabs.io/network/getNAG"
+    blockchain_id: "0x8a20baa40c45dc5055aeb26197c203e576ef389d9acb171bd62da11dc5ad72b2"  # Sandbox chain
     explorer_url: "https://circularlabs.io/Explorer?network=testnet"
-    payee_address: "${CIRCULAR_TESTNET_ADDRESS}"
+    payee_address: "${CIRCULAR_CEP_TESTNET_ADDRESS}"
     currency_symbol: "CIRX"
+    # base_url is dynamically discovered via NAG: getNAG?network=testnet
 
   circular-mainnet:
     name: "Circular Mainnet"
     network_id: "mainnet"
-    base_url: "${CIRCULAR_MAINNET_URL}"  # From environment variable
+    nag_discovery_url: "https://circularlabs.io/network/getNAG"
+    blockchain_id: "mainnet"  # Discovered via NAG
     explorer_url: "https://circularlabs.io/Explorer?network=mainnet"
-    payee_address: "${CIRCULAR_MAINNET_ADDRESS}"
+    payee_address: "${CIRCULAR_CEP_MAINNET_ADDRESS}"
     currency_symbol: "CIRX"
+    # base_url is dynamically discovered via NAG: getNAG?network=mainnet
 
 log_level: "info"
 ```
+
+**NAG Discovery Process**:
+1. Query `{nag_discovery_url}?network={network_id}` at startup
+2. Parse response: `{"status": "success", "url": "https://nag.circularlabs.io/NAG.php?cep="}`
+3. Construct endpoint URLs: `{nag_url}Circular_{MethodName}_{network}`
+   - Example: `https://nag.circularlabs.io/NAG.php?cep=Circular_GetWalletNonce_testnet`
 
 **Loading Logic**:
 ```go
@@ -460,14 +474,19 @@ func (c *Config) Validate() error {
 
 **Environment Variables** (`.env` file):
 ```bash
-# Circular Protocol Testnet
-CIRCULAR_TESTNET_URL="https://api.testnet.circularlabs.io"  # TBD
-CIRCULAR_TESTNET_ADDRESS="0x..."  # Your testnet wallet
-CIRCULAR_PRIVATE_KEY="0x..."      # Private key for signing
+# Circular Protocol Enterprise API (CEP) - Testnet/Development
+CIRCULAR_CEP_TESTNET_PRIVATE_KEY=your_testnet_private_key_hex
+CIRCULAR_CEP_TESTNET_SEED_PHRASE="your twelve word seed phrase here"
+CIRCULAR_CEP_TESTNET_BLOCKCHAIN_ID=0x8a20baa40c45dc5055aeb26197c203e576ef389d9acb171bd62da11dc5ad72b2
+CIRCULAR_CEP_NAG_DISCOVERY_URL=https://circularlabs.io/network/getNAG
 
-# Circular Protocol Mainnet
-CIRCULAR_MAINNET_URL="https://api.circularlabs.io"  # TBD
-CIRCULAR_MAINNET_ADDRESS="0x..."  # Your mainnet wallet
+# Circular Protocol Enterprise API - Mainnet
+CIRCULAR_CEP_MAINNET_PRIVATE_KEY=your_mainnet_private_key_hex
+CIRCULAR_CEP_MAINNET_BLOCKCHAIN_ID=mainnet  # Discovered via NAG
+
+# Server Configuration
+CIRCULAR_CEP_NETWORK=testnet  # Options: testnet, mainnet
+LOG_LEVEL=info
 ```
 
 ---
