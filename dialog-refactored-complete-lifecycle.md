@@ -258,6 +258,78 @@ paymentReq := X402PaymentRequirement{
 }
 ```
 
+### Tool Call 5: Encode payment for QR code
+
+**HTTP Proxy [MCP-GO] → qr-code-mcp-server.encode_payment_for_qr**
+```json
+{
+  "tool": "encode_payment_for_qr",
+  "arguments": {
+    "payment_requirements": {
+      "x402_version": 1,
+      "scheme": "exact",
+      "network": "base",
+      "maxAmountRequired": "30000",
+      "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+      "payTo": "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb",
+      "valid_until": 1730388900
+    },
+    "callback_url": "https://certify.ar4s.com/v1/pay/req_offerletter_20251031_abc123"
+  }
+}
+```
+
+**qr-code-mcp-server {Generate EIP-681 URI}:**
+```go
+// Format payment data as EIP-681 URI for wallet compatibility
+eip681URI := fmt.Sprintf(
+    "ethereum:%s@%d/transfer?address=%s&uint256=%s&callback=%s",
+    paymentReq.Asset,           // USDC contract
+    8453,                        // Base chain ID
+    paymentReq.PayTo,           // Recipient
+    paymentReq.MaxAmountRequired, // Amount
+    url.QueryEscape(callbackURL),
+)
+```
+
+**qr-code-mcp-server [MCP-GO] ← HTTP Proxy:**
+```json
+{
+  "eip681_uri": "ethereum:0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913@8453/transfer?address=0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb&uint256=30000&callback=https%3A%2F%2Fcertify.ar4s.com%2Fv1%2Fpay%2Freq_offerletter_20251031_abc123"
+}
+```
+
+### Tool Call 6: Generate QR code image
+
+**HTTP Proxy [MCP-GO] → qr-code-mcp-server.generate_qr_image**
+```json
+{
+  "tool": "generate_qr_image",
+  "arguments": {
+    "data": "ethereum:0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913@8453/transfer?address=0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb&uint256=30000&callback=https%3A%2F%2Fcertify.ar4s.com%2Fv1%2Fpay%2Freq_offerletter_20251031_abc123",
+    "format": "png",
+    "size": 256
+  }
+}
+```
+
+**qr-code-mcp-server {Generate QR Code}:**
+```go
+// Generate QR code image
+qrCode, err := qrcode.Encode(data, qrcode.Medium, size)
+base64Encoded := base64.StdEncoding.EncodeToString(qrCode)
+```
+
+**qr-code-mcp-server [MCP-GO] ← HTTP Proxy:**
+```json
+{
+  "format": "png",
+  "size": 256,
+  "base64": "iVBORw0KGgoAAAANSUhEUgAAAQAAAAEACAYAAABccqhmAAAABHNCSVQICAgIfAhkiAAAA...",
+  "data_uri": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAQAAAAEACAYAAABccqhmAAAA..."
+}
+```
+
 ### HTTP Proxy returns 402 Payment Required
 
 **HTTP Proxy {Store Request in DB}:**
@@ -291,65 +363,98 @@ VALUES
     "resource": "https://certify.ar4s.com/v1/certify",
     "description": "Certify ashley-barr_offerletter-contract--unsigned.pdf"
   },
+  "payment_link": "https://certify.ar4s.com/pay/req_offerletter_20251031_abc123",
+  "qr_code_url": "https://certify.ar4s.com/v1/qr/req_offerletter_20251031_abc123.png",
+  "qr_code_base64": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAQAAAAEACAYAAABccqhmAAAA...",
   "instructions": {
-    "message": "Payment required to proceed. Sign an EIP-3009 authorization and retry with X-PAYMENT header.",
-    "eip3009_fields": [
-      "from: your_wallet_address",
-      "to: 0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb",
-      "value: 30000",
-      "validAfter: 0",
-      "validBefore: 1730388900",
-      "nonce: 0x2a",
-      "signature: <sign with your private key>"
-    ]
+    "message": "Payment required to proceed. You can pay via browser wallet, mobile wallet (scan QR), or sign manually.",
+    "browser_wallet": "Click the payment_link to pay with MetaMask or other browser wallet",
+    "mobile_wallet": "Scan the QR code with your mobile wallet (MetaMask, Rainbow, Coinbase Wallet)",
+    "manual_signing": "Sign an EIP-3009 authorization with your wallet and provide the signature"
   }
 }
 ```
 
 ---
 
-## Phase 4: Agent Discovers Payment Requirement & Limitation
+## Phase 4: Agent Discovers Payment Requirement & Informs User
 
-**LLM/Agent {Attempts to Pay}:**
+**LLM/Agent {Analyzes 402 Response}:**
 ```javascript
-// LLM/Agent tries to construct EIP-3009 authorization
+// LLM/Agent receives payment requirements with link + QR code
 // Realizes: NO access to private keys, NO wallet, NO native signing capability
+// Decision: Display payment options directly in chat interface for user to choose
 ```
 
 **LLM/Agent → User:**
-```
-"I've received a quote for certifying your document: $0.03 USDC (0.03 USDC processing fee +
-4 CIRX blockchain fee at current rate of $0.0044/CIRX).
+```markdown
+I've received a quote for certifying your document:
 
-However, I need payment to proceed. I cannot make payments directly because I don't have
-access to a wallet or private keys. Here are your options:
+**Cost: $0.03 USDC**
+- Processing fee: $0.03 USDC
+- Blockchain fee: 4 CIRX (≈ $0.0176 at current rate)
+- Valid for: 5 minutes
 
-Option 1 (Agent Workflow - Programmatic):
-  - You'll need to sign an EIP-3009 payment authorization using your wallet
-  - Required signature fields are in the response above
-  - Once signed, I can submit it on your behalf
+⚠️ **I cannot make payments directly** because I don't have access to a wallet or private keys.
 
-Option 2 (Browser Workflow - MetaMask):
-  - I can generate a MetaMask deep link for you
-  - Click the link, approve the payment in MetaMask
-  - Your browser will automatically retry the request with payment proof
+Please choose one of the following payment options:
 
-Option 3 (Mobile Workflow - QR Code):
-  - I can generate a QR code for mobile wallet payment
-  - Scan with your mobile wallet (MetaMask, Rainbow, Coinbase Wallet)
-  - Your wallet will make the callback with payment proof
+---
 
-Which option would you prefer?"
+### Option 1: Browser Wallet (Desktop Users)
+
+Click this link to pay with MetaMask or another browser wallet:
+
+🔗 [Pay with Browser Wallet](https://certify.ar4s.com/pay/req_offerletter_20251031_abc123)
+
+The payment page will guide you through the process.
+
+---
+
+### Option 2: Mobile Wallet (Phone/Tablet Users)
+
+Scan this QR code with your mobile wallet app:
+
+![Payment QR Code](https://certify.ar4s.com/v1/qr/req_offerletter_20251031_abc123.png)
+
+Compatible wallets: MetaMask Mobile, Rainbow, Coinbase Wallet
+
+---
+
+### Option 3: Manual Signing (Advanced Users)
+
+If you have a wallet and can sign EIP-3009 authorizations manually, provide me with:
+- Your wallet address
+- The signature (v, r, s components)
+
+I'll then submit the payment on your behalf.
+
+---
+
+After payment completes, I'll automatically receive your certification proof and share it with you.
 ```
 
 **User → LLM/Agent:**
 ```
-"Let's use Option 1. I have a wallet with private keys. How do I sign the authorization?"
+"I'll use the mobile wallet option. Let me scan that QR code."
 ```
 
 **LLM/Agent → User:**
 ```
-"You'll need to sign an EIP-3009 'TransferWithAuthorization' message with these parameters:
+"Perfect! After you scan the QR code and approve the payment in your mobile wallet,
+the certification will proceed automatically. I'll let you know once it's complete."
+```
+
+### Alternative: User chooses manual signing
+
+**Alternative User Response → LLM/Agent:**
+```
+"I have a wallet. Let me sign it manually. What do I need to sign?"
+```
+
+**Alternative LLM/Agent → User:**
+```
+"Great! You'll need to sign an EIP-3009 'TransferWithAuthorization' message with these parameters:
 
 from: <your_wallet_address>
 to: 0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb
@@ -362,7 +467,7 @@ Use EIP-712 typed data signing. Once you provide the signature (v, r, s componen
 I'll submit it to complete the certification."
 ```
 
-**User → LLM/Agent:**
+**Alternative User → LLM/Agent:**
 ```
 "Here's my signed authorization:
 from: 0xUserWalletAddress123...
@@ -373,7 +478,16 @@ s: 0x1234567890abcdef..."
 
 ---
 
-## Phase 5: Payment Verification & Settlement
+**NOTE:** In the mobile wallet flow, the user would scan the QR code, approve in their wallet, and the wallet would POST to the callback URL `https://certify.ar4s.com/v1/pay/req_offerletter_20251031_abc123` with the X-PAYMENT header. The server would then process payment and certification automatically, while the LLM polls for status updates to inform the user. We'll continue this dialog with the **manual signing flow** for demonstration purposes.
+
+---
+
+## Phase 5: Payment Verification & Settlement (Manual Signing Flow)
+
+**LLM/Agent {Receives User's Signature}:**
+```
+"Perfect! I have your signature. Let me submit the payment now..."
+```
 
 **LLM/Agent [HTTP] → POST https://certify.ar4s.com/v1/certify**
 ```
@@ -393,7 +507,7 @@ decodedPayment, err := base64.StdEncoding.DecodeString(paymentHeader)
 // Parse EIP-3009 authorization fields
 ```
 
-### Tool Call 5: Verify payment
+### Tool Call 7: Verify payment
 
 **HTTP Proxy [MCP-GO] → x402-mcp-server.verify_payment**
 ```json
@@ -458,7 +572,7 @@ if signerAddress != authorization.From {
 }
 ```
 
-### Tool Call 6: Settle payment via x402 facilitator
+### Tool Call 8: Settle payment via x402 facilitator
 
 **HTTP Proxy [MCP-GO] → x402-mcp-server.settle_payment**
 ```json
@@ -545,7 +659,7 @@ WHERE request_id = 'req_offerletter_20251031_abc123';
 circularClient := s.mcpClients["circular-protocol-mcp"]
 ```
 
-### Tool Call 7: Get wallet nonce
+### Tool Call 9: Get wallet nonce
 
 **HTTP Proxy [MCP-GO] → circular-protocol-mcp-server.get_wallet_nonce**
 ```json
@@ -610,7 +724,7 @@ privateKey := s.loadPrivateKey("CIRCULAR_CEP_MAINNET_PRIVATE_KEY")
 signature, err := crypto.Sign(txID[:], privateKey)
 ```
 
-### Tool Call 8: Certify data
+### Tool Call 10: Certify data
 
 **HTTP Proxy [MCP-GO] → circular-protocol-mcp-server.certify_data**
 ```json
@@ -689,7 +803,7 @@ SET status = 'certifying'
 WHERE request_id = 'req_offerletter_20251031_abc123';
 ```
 
-### Tool Call 9: Poll transaction status
+### Tool Call 11: Poll transaction status
 
 **HTTP Proxy [MCP-GO] → circular-protocol-mcp-server.get_transaction_status**
 ```json
@@ -828,7 +942,7 @@ POST https://circular-protocol-api.example.com/Circular_GetTransaction_
 }
 ```
 
-### Tool Call 10: Get certification proof
+### Tool Call 12: Get certification proof
 
 **HTTP Proxy [MCP-GO] → circular-protocol-mcp-server.get_certification_proof**
 ```json
@@ -996,11 +1110,18 @@ func (m *MCPClientManager) CallTool(serverName, toolName string, args map[string
 2. data-quote-mcp.get_cirx_price
 3. data-quote-mcp.calculate_quote
 4. x402-mcp.create_payment_requirement
-5. x402-mcp.verify_payment
-6. x402-mcp.settle_payment
-7. circular-protocol-mcp.get_wallet_nonce
-8. circular-protocol-mcp.certify_data
-9. circular-protocol-mcp.get_transaction_status (3x polling)
-10. circular-protocol-mcp.get_certification_proof
+5. qr-code-mcp.encode_payment_for_qr
+6. qr-code-mcp.generate_qr_image
+7. x402-mcp.verify_payment
+8. x402-mcp.settle_payment
+9. circular-protocol-mcp.get_wallet_nonce
+10. circular-protocol-mcp.certify_data
+11. circular-protocol-mcp.get_transaction_status (3x polling)
+12. circular-protocol-mcp.get_certification_proof
 
-**Total: 13 MCP tool invocations orchestrated by mcp-go client**
+**Total: 15 MCP tool invocations orchestrated by mcp-go client**
+
+**Payment Options Provided to User:**
+- Browser wallet link (fallback payment page)
+- QR code image (displayed in chat for mobile wallets)
+- Manual signing instructions (for advanced users with wallet access)
