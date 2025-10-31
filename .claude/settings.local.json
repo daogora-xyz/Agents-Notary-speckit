@@ -27,7 +27,10 @@
       "Read(//home/lessuseless/.claude/projects/**)",
       "Bash(xargs:*)",
       "Bash(awk:*)",
-      "SlashCommand(/speckit.tasks)"
+      "SlashCommand(/speckit.tasks)",
+      "mcp__sequential-thinking__sequentialthinking",
+      "mcp__context7__resolve-library-id",
+      "mcp__context7__get-library-docs"
     ],
     "deny": [],
     "ask": []

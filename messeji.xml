@@ -1,0 +1,1206 @@
+This file is a merged representation of the entire codebase, combined into a single document by Repomix.
+
+<file_summary>
+This section contains a summary of this file.
+
+<purpose>
+This file contains a packed representation of the entire repository's contents.
+It is designed to be easily consumable by AI systems for analysis, code review,
+or other automated processes.
+</purpose>
+
+<file_format>
+The content is organized as follows:
+1. This summary section
+2. Repository information
+3. Directory structure
+4. Repository files (if enabled)
+5. Multiple file entries, each consisting of:
+  - File path as an attribute
+  - Full contents of the file
+</file_format>
+
+<usage_guidelines>
+- This file should be treated as read-only. Any changes should be made to the
+  original repository files, not this packed version.
+- When processing this file, use the file path to distinguish
+  between different files in the repository.
+- Be aware that this file may contain sensitive information. Handle it with
+  the same level of security as you would the original repository.
+</usage_guidelines>
+
+<notes>
+- Some files may have been excluded based on .gitignore rules and Repomix's configuration
+- Binary files are not included in this packed representation. Please refer to the Repository Structure section for a complete list of file paths, including binary files
+- Files matching patterns in .gitignore are excluded
+- Files matching default ignore patterns are excluded
+- Files are sorted by Git change count (files with more changes are at the bottom)
+</notes>
+
+</file_summary>
+
+<directory_structure>
+docs/
+  img/
+    cat.jpg
+    toebean.jpg
+  example.jpg
+  image.example.json
+  messeji-guide.pdf
+  messeji-guide.typ
+  output.example.json
+  template.typ
+tests/
+  images/
+    img/
+      cat.jpg
+      toebean.jpg
+    image.test.json
+    image.test.pdf
+    image.test.typ
+.gitignore
+LICENSE
+messeji.typ
+README.md
+typst.toml
+</directory_structure>
+
+<files>
+This section contains the contents of the repository's files.
+
+<file path="docs/image.example.json">
+[
+  {
+    "date": "2025-04-20T12:15:00",
+    "msg": "Hey!",
+    "from_me": true
+  },
+  {
+    "image": "cat.jpg",
+    "from_me": true,
+    "reaction": "😍"
+  },
+  {
+    "msg": "Look at this cute cat!",
+    "from_me": true
+  },
+  {
+    "msg": "Cute right?",
+    "from_me": true
+  },
+  {
+    "msg": "Wow, very cute!",
+    "from_me": false
+  },
+  {
+    "msg": "Look at these cute toebeans!",
+    "image": "toebean.jpg",
+    "from_me": false
+  },
+  {
+    "msg": "Cute!",
+    "ref": "(Image)",
+    "from_me": true
+  }
+]
+</file>
+
+<file path="docs/messeji-guide.typ">
+// Imports
+#import "template.typ": *
+#import "@preview/tidy:0.4.2"
+#import "../messeji.typ"
+
+#let typst-toml = toml("../typst.toml").at("package")
+
+#show: project.with(
+  title: typst-toml.at("name"),
+  subtitle: typst-toml.at("description"),
+  authors: typst-toml.at("authors"),
+  abstract: "messēji (\"Message\" in Japanese) is a Typst package for
+  typesetting chat histories in a modern, minimal design, inspired by popular
+  messengers. No manual copying to your Typst document required, just pass in a
+  JSON file.",
+  date: datetime.today().display("[month repr:long] [day], [year]"),
+  version: typst-toml.at("version"),
+  url: typst-toml.at("repository"),
+  note: [Build this document with `typst compile messeji-guide.typ --root ..` \
+    Function reference generated with
+    #link("https://github.com/Mc-Zen/tidy")[tidy].],
+)
+
+
+#show heading.where(level: 1): it => {
+  pagebreak(weak: true)
+  it
+}
+
+= Introduction
+
+With _messēji_, you can easily typeset long chats by passing in your history as
+a JSON file. No clutter in your Typst document, and you can focus on your actual
+content. Main features of _messēji_ include:
+
+- Support for quoted messages
+- Image messages (with and without captions)
+- Displaying timestamps between messages
+- Simple data model to read from external files (JSON, YAML, ...) if you want to
+  typeset very long chat histories
+- Reacting to messages
+
+Currently, it does not support:
+
+- Group chats (only 1-on-1 chats)
+- Displaying names / profile pictures next to the messages
+
+These features are currently not planned to be implemented. However, if you need
+them, #link("https://github.com/Tanikai/messeji/issues")[create an issue] and
+I'll look into it (if I have the time).
+
+= Usage
+
+== Import
+
+Add the following import statement to the top of your document:
+
+```typ
+#import "@preview/messeji:0.3.0": messeji
+```
+
+== Message Structure
+
+The messages have to be in the following structure (dictionary formatted as
+JSON):
+
+```json5
+{
+  // Optional, can be combined with image
+  "msg": "Actual Message",
+
+  // Optional, can be combined with msg
+  "image": "path_to_image.jpg",
+
+  // Required, true for right, false for left
+  "from_me": true,
+
+  // Optional, in ISO 8601 format
+  "date": "2026-12-25T09:41:00",
+
+  // Optional
+  "ref": "Previous message that is being quoted",
+
+  // Optional, only single emojis are tested / supported
+  "reaction": "❤️"
+}
+```
+
+The order of the fields is not important. You can use other filetypes if you
+want to, but the key names have to be the same, and the `date` value has to be
+in ISO 8601 format.
+
+== Basic example from JSON
+
+```typ
+#set text(font: "Helvetica Neue")
+#let parsed-data = json("output.example.json") // list of messages
+#messeji(chat-data: parsed-data)
+```
+
+The code snippet above assumes the following structure from the JSON file:
+
+```json5
+[
+  {
+    "date": "2026-12-25T09:41:00",
+    "msg": "Merry Christmas! 🎄",
+    "from_me": false
+  },
+  {
+    "msg": "Thank you, you too! 😊",
+    "ref": "Merry Christmas! 🎄",
+    "from_me": true
+  },
+  //...
+]
+```
+
+It then produces the following chat:
+
+#line(length: 100%)
+#let parsed-data = json("output.example.json")
+#{
+  set text(font: "Helvetica Neue")
+  messeji.messeji(chat-data: parsed-data)
+}
+#v(1em)
+#line(length: 100%)
+
+
+== Basic example directly in Typst
+
+```typ
+#let my-messages = (
+  (
+    date: "2024-01-01T12:00:00",
+    msg: "This is defined directly in the Typst file.",
+    from_me: false,
+  ),
+  (
+    msg: "Nice!",
+    from_me: true,
+  ),
+)
+#messeji(chat-data: my-messages)
+```
+
+Produces the following chat:
+
+#line(length: 100%)
+#let my-messages = (
+  (
+    date: "2024-01-01T12:00:00",
+    msg: "This is defined directly in the Typst file.",
+    from_me: false,
+  ),
+  (
+    msg: "Nice!",
+    from_me: true,
+  ),
+)
+#{
+  set text(font: "Helvetica Neue")
+  messeji.messeji(chat-data: my-messages)
+}
+#v(1em)
+#line(length: 100%)
+
+
+#pagebreak(weak: true)
+
+== Messages with Images
+
+As typst does not support directory walking
+#footnote[#link("https://forum.typst.app/t/is-there-a-way-to-retrieve-the-current-file-name-list-files-etc-within-typst/155/3")],
+loading messages with images from a JSON file is a bit more complicated.
+Additionally, Typst packages cannot access the working directory of your
+project, which means that you have to define the function that loads the images,
+and pass them to messeji as parameters. However, there is still a way to do this
+automatically.
+
+In short, you just have to add a single function to your Typst document that
+handles loading the images from your directory. The general workflow looks like
+this:
+
+1. Save all images in the same directory (e.g., `img`)
+2. Import and use the `get-image-names` function from messeji to get all image
+  names that are defined in your message list. It returns the image names in a
+  dictionary, and still has to be filled with the loaded images.
+3. Pass the image names to your own `load-images` function (see below) to load
+  them into Typst.
+4. Pass the loaded images to `messeji`.
+
+In detail, add the following code to your document:
+
+```typ
+#import "@preview/messeji:0.3.0": messeji, get-image-names // import image name function
+
+// this function has to be defined in your own document, as it accesses files
+// located in your project directory (with the `image()` function).
+#let load-images(
+  directory, // with trailing slash!
+  image-names,
+) = {
+  for img-name in image-names.keys() {
+    image-names.insert(img-name, image(directory + img-name, fit: "contain"))
+  }
+  return image-names
+}
+
+#let chat-with-images = json("image.example.json") // Load chat data from JSON file
+
+#let image-names = get-image-names(chat-with-images) // Load image names from loaded chat data
+
+#let loaded-images = load-images("img/", image-names) // Load actual images into Typst
+
+#messeji(
+  chat-data: chat-with-images,
+  images: loaded-images,
+)
+```
+
+This produces the following chat:
+
+#line(length: 100%)
+#let load-images(
+  directory, // with trailing slash!
+  image-names,
+) = {
+  for img-name in image-names.keys() {
+    image-names.insert(
+      img-name,
+      image(
+        directory + img-name,
+        fit: "contain",
+      ),
+    )
+  }
+  return image-names
+}
+
+#let chat-with-images = json("image.example.json")
+#let image-names = messeji.get-image-names(chat-with-images)
+#let loaded-images = load-images("img/", image-names)
+#{
+  set text(font: "Helvetica Neue")
+  messeji.messeji(
+    chat-data: chat-with-images,
+    images: loaded-images,
+  )
+}
+#v(1em)
+#line(length: 100%)
+
+= Customization
+
+== Themes
+
+You can customize the text colors, backgrounds, and font sizes. Currently, the
+default theme has the following keys and values:
+
+#raw("#let default-theme = " + repr(messeji.default-theme), lang: "typ", block: true)
+
+If you want to change the theme, you just have to override the keys that you
+need. Everything else that is undefined will be taken from the default theme:
+
+```typ
+#let custom-theme = (
+  me-right: (
+    background-color: green
+  )
+)
+#messeji(
+  chat-data: parsed-data,
+  theme: custom-theme
+)
+```
+
+Produces the following output:
+
+#line(length: 100%)
+#let custom-theme = (
+  me-right: (
+    background-color: green,
+  ),
+)
+#{
+  set text(font: "Helvetica Neue")
+  messeji.messeji(
+    chat-data: parsed-data,
+    theme: custom-theme,
+  )
+}
+#v(1em)
+#line(length: 100%)
+
+== Custom timestamp and date-change format
+
+By default, every time a message has a `date` value, timestamps are displayed in
+the format `YYYY-MM-DD HH:DD`. However, you can customize it by passing a format
+string to `timestamp-format`
+#link("https://typst.app/docs/reference/foundations/datetime/#format")[(Click
+here for Typst documentation)].
+
+If you want to highlight that a new day started, you can use
+`date-changed-format`. By default, this is deactivated by setting it to `""`.
+
+```typ
+#messeji(
+  chat-data: parsed-data,
+  date-changed-format: "[year]/[month]/[day]",
+  timestamp-format: "[hour]:[minute]",
+)
+```
+
+#line(length: 100%)
+#{
+  set text(font: "Helvetica Neue")
+  messeji.messeji(
+    chat-data: parsed-data,
+    date-changed-format: "[year]/[month]/[day]",
+    timestamp-format: "[hour]:[minute]",
+  )
+}
+#v(1em)
+#line(length: 100%)
+
+= Function Reference
+
+
+#{
+  let messeji-module = tidy.parse-module(
+    read("../messeji.typ"),
+    name: "Messeji",
+    scope: (default-theme: messeji.default-theme),
+  )
+  set heading(numbering: none)
+  show heading.where(level: 3): set text(1.5em)
+  show heading.where(level: 4): it => {
+    set text(1.4em)
+    set align(center)
+    set block(below: 1.2em)
+    it
+  }
+  tidy.show-module(
+    messeji-module,
+    show-module-name: false,
+    omit-private-definitions: true,
+    first-heading-level: 3,
+  )
+}
+</file>
+
+<file path="docs/output.example.json">
+[
+  {
+    "date": "2026-12-25T09:41:00",
+    "msg": "Hey!",
+    "reaction": "️❤️",
+    "from_me": false
+  },
+  {
+    "msg": "Merry Christmas! 🎄",
+    "reaction": "️❤️",
+    "from_me": false
+  },
+  {
+    "msg": "Thank you!",
+    "ref": "Merry Christmas! 🎄",
+    "from_me": true
+  },
+  {
+    "msg": "You too! 😊",
+    "from_me": true,
+    "reaction": "️❤️"
+  },
+  {
+    "date": "2027-01-01T02:01:00",
+    "msg": "Happy New Year! 🎉",
+    "reaction": "🎆",
+    "from_me": true
+  },
+  {
+    "msg": "Hey!",
+    "from_me": false
+  },
+  {
+    "msg": "Thanks!",
+    "ref": "Happy New Year! 🎉",
+    "from_me": false
+  }
+]
+</file>
+
+<file path="docs/template.typ">
+#import "@preview/codly:1.3.0": codly-init, no-codly, codly
+
+#let project(
+  title: "",
+  subtitle: "",
+  abstract: [],
+  authors: (),
+  url: "",
+  date: none,
+  version: none,
+  note: none,
+  body,
+) = {
+  // Set the document's basic properties.
+  set document(author: authors, title: title)
+  set page(numbering: "1", number-align: center)
+
+  show heading.where(level: 1): it => block(smallcaps(it), below: 1em)
+  // set heading(numbering: (..args) => if args.pos().len() == 1 { numbering("I", ..args) })
+  set heading(numbering: "I.a")
+  show list: pad.with(x: 5%)
+  show heading.where(level: 3): set text(1.2em)
+
+  // show link: set text(fill: purple.darken(30%))
+  show link: it => {
+    let dest = str(it.dest)
+    if "." in dest and not "/" in dest { return underline(it, stroke: luma(60%), offset: 1pt) }
+    set text(fill: rgb("#1e8f6f"))
+    underline(it)
+  }
+
+  v(4em)
+
+  // Title row.
+  align(center)[
+    #block(text(weight: 700, 1.75em, title))
+    #block(text(1.0em, subtitle))
+    #v(4em, weak: true)
+    v#version #h(1.2cm) #date
+    #block(link(url))
+    #v(1.5em, weak: true)
+  ]
+
+  // Author information.
+  pad(
+    top: 0.5em,
+    x: 2em,
+    grid(
+      columns: (1fr,) * calc.min(3, authors.len()),
+      gutter: 1em,
+      ..authors.map(author => align(center, strong(author))),
+    ),
+  )
+
+  v(3cm, weak: true)
+
+  // Abstract.
+  pad(
+    x: 3.8em,
+    top: 1em,
+    bottom: 1.1em,
+    align(center)[
+      #heading(
+        outlined: false,
+        numbering: none,
+        text(0.85em, smallcaps[Abstract]),
+      )
+      #abstract
+
+      // Note.
+      #heading(
+        outlined: false,
+        numbering: none,
+        text(0.85em, smallcaps[Note]),
+      )
+      #note
+    ],
+  )
+
+  // Main body.
+  set par(justify: true)
+  v(7em)
+
+  pad(x: 10%, outline(depth: 2, indent: 2em))
+  pagebreak()
+
+  show: codly-init.with()
+  codly(fill: white)
+  // codly(
+  //   languages: (:
+  //     // typ: (name: "typ", icon: none, color: rgb("#239DAE")),
+  //   ),
+  // )
+  show raw.where(block: true): set text(size: .95em)
+  show raw.where(block: true): it => pad(x: 4%, it)
+  show raw.where(block: false, lang: "typ").or(raw.where(lang: "notnone")): it => box(
+    inset: (x: 3pt),
+    outset: (y: 3pt),
+    radius: 40%,
+    fill: luma(235),
+    it,
+  )
+  set raw(lang: "notnone")
+  body
+}
+</file>
+
+<file path="tests/images/image.test.json">
+[
+  {
+    "date": "2025-04-20T12:15:00",
+    "msg": "Hey!",
+    "from_me": true
+  },
+  {
+    "msg": "Look at this cute cat!",
+    "from_me": true
+  },
+  {
+    "image": "cat.jpg",
+    "from_me": true
+  },
+  {
+    "msg": "Cute!",
+    "from_me": false
+  },
+  {
+    "msg": "Look at these cute toebeans!",
+    "image": "toebean.jpg",
+    "from_me": false
+  },
+  {
+    "msg": "Cute!",
+    "ref": "(Image)",
+    "from_me": true
+  },
+  {
+    "msg": "Cute!",
+    "from_me": true
+  },
+  {
+    "msg": "Cute!",
+    "from_me": true
+  },
+  {
+    "msg": "Cute!",
+    "from_me": true
+  }
+]
+</file>
+
+<file path="tests/images/image.test.typ">
+#import "../../messeji.typ": messeji, get-image-names
+
+#let mychat = json("image.test.json")
+
+#let imagenames = get-image-names(mychat)
+#repr(imagenames)
+
+
+#let load-images(
+  directory, // with trailing slash!
+  image-names,
+) = {
+  for img-name in image-names.keys() {
+    image-names.insert(
+      img-name,
+      image(
+        directory + img-name,
+        fit: "contain",
+      ),
+    )
+  }
+  return image-names
+}
+
+#let loaded-images = load-images("img/", imagenames)
+
+#for (name, img) in loaded-images.pairs() {
+  block(
+    width: 50%,
+    clip: true,
+    fill: red,
+    radius: 1em,
+    img,
+  )
+}
+
+#messeji(
+  chat-data: mychat,
+  images: loaded-images,
+)
+</file>
+
+<file path=".gitignore">
+.vscode
+</file>
+
+<file path="LICENSE">
+MIT License
+
+Copyright (c) 2025 Kai Anter
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+</file>
+
+<file path="messeji.typ">
+#let default-theme = (
+  timestamp-color: rgb(101, 103, 107),
+  timestamp-size: .9em,
+  date-changed-color: black,
+  date-changed-size: 1.5em,
+  me-right: (
+    color: white,
+    background-color: rgb("#3797F0"),
+    quote-color: black,
+    quote-background-color: rgb(239, 239, 239),
+  ),
+  other-left: (
+    color: black,
+    background-color: rgb(239, 239, 239),
+    quote-color: black,
+    quote-background-color: rgb(239, 239, 239),
+  ),
+  reaction-stroke-color: white,
+  bubble-inset: 0.6em,
+  bubble-radius: 1.5em,
+  bubble-tail: true,
+  image-width: 50%,
+)
+
+#let _fill_dict_default(
+  actual,
+  default,
+) = {
+  // iterate over every key of default
+
+  let result = (:)
+
+  for (key, value) in default.pairs() {
+    // if key exists in actual dictionary, use its value
+    if key in actual {
+      // check for nested dictionary -> recursive call
+      if type(actual.at(key)) == dictionary {
+        result.insert(key, _fill_dict_default(actual.at(key), default.at(key)))
+      } else {
+        result.insert(key, actual.at(key))
+      }
+    } else {
+      // insert value from default dictionary
+      result.insert(key, value)
+    }
+  }
+
+  return result
+}
+
+#let _to_int(s) = {
+  let no_prefix = s.trim("0")
+  if no_prefix.len() == 0 {
+    return 0
+  } else {
+    return int(no_prefix)
+  }
+}
+
+#let _parse_timestamp_iso_8601(s) = {
+  let split = s.split("T")
+  let day = split.at(0).trim()
+  let time = split.at(1).trim()
+
+  let day_parts = day.split("-")
+  let time_parts = time.split(":")
+
+  return datetime(
+    year: _to_int(day_parts.at(0)),
+    month: _to_int(day_parts.at(1)),
+    day: _to_int(day_parts.at(2)),
+    hour: _to_int(time_parts.at(0)),
+    minute: _to_int(time_parts.at(1)),
+    second: _to_int(time_parts.at(2)),
+  )
+}
+
+/// Renders a chat bubble.
+#let _chat-bubble(
+  /// theme to use -> dictionary
+  theme, 
+
+  /// message that should be displayed. -> str
+  message,
+
+  /// Optional quote of message -> str
+  quote: "",
+
+  /// Optional reaction to message -> str
+  reaction: "",
+
+  /// Alignment of message -> "left" | "right"
+  msg-align: "left",
+
+  /// Optional image of message -> image
+  image: none,
+) = {
+  // Global Settings
+  let bubble-inset = theme.at("bubble-inset")
+  let radius = theme.at("bubble-radius")
+  let tail = theme.at("bubble-tail")
+  let image-width = theme.at("image-width")
+  let reaction-stroke-color = theme.at("reaction-stroke-color")
+
+  // Rendering
+  let is-right = msg-align == "right"
+  let curr-theme = theme.other-left
+  if is-right {
+    curr-theme = theme.me-right
+  }
+  let background-color = curr-theme.at("background-color")
+
+  // optional: quoted message
+  align(
+    if is-right { right } else { left },
+    block(
+      breakable: false,
+      stack(
+        spacing: 2pt,
+        // quoted message
+        if quote != "" {
+          v(4pt)
+          align(
+            horizon,
+            stack(
+              dir: ltr,
+              spacing: 4pt,
+              if not is-right {
+                // vertical line next to quoted message
+                rect(
+                  width: 3pt,
+                  height: 20pt,
+                  radius: 1.5pt,
+                  fill: curr-theme.at("quote-background-color"),
+                )
+              },
+              block(
+                width: auto,
+                inset: bubble-inset,
+                fill: curr-theme.at("quote-background-color"),
+                radius: radius,
+                align(
+                  left,
+                  text(
+                    curr-theme.at("quote-color"),
+                    size: 0.875em,
+                    quote,
+                  ),
+                ),
+              ),
+              if is-right {
+                rect(
+                  width: 3pt,
+                  height: 20pt,
+                  radius: 1.5pt,
+                  fill: curr-theme.at("quote-background-color"),
+                )
+              },
+            ),
+          )
+        },
+
+        // message bubble
+        block(
+          width: auto,
+          radius: (
+            top-left: radius,
+            top-right: radius,
+            bottom-left: if is-right or not tail { radius } else { 0pt },
+            bottom-right: if is-right and tail { 0pt } else { radius },
+          ),
+          inset: bubble-inset / 2,
+          fill: background-color,
+          stack(
+            dir: ttb,
+            spacing: 0pt,
+
+            // image (optional)
+            if image != none {
+              block(
+                clip: true, // for rounded corners of image
+                width: image-width,
+                radius: radius - (bubble-inset / 2), // innerR = outerR - gap
+                image,
+              )
+            },
+
+            // caption
+            if message != "" {
+              if image != none {
+                v(bubble-inset / 2)
+              }
+              block(
+                width: auto,
+                inset: bubble-inset / 2,
+                align(
+                  left,
+                  text(
+                    curr-theme.at("color"),
+                    size: 0.9375em,
+                    message,
+                  ),
+                ),
+              )
+            },
+
+            if reaction != "" {
+              place(
+                bottom + if is-right { right } else { left },
+                dx: if is-right { 1 } else { -1 } * bubble-inset / 3,
+                dy: bubble-inset * 2,
+                block(
+                  width: auto,
+                  stroke: 1pt + reaction-stroke-color,
+                  inset: (
+                    top: bubble-inset / 2,
+                    bottom: bubble-inset / 2,
+                    left: bubble-inset,
+                    right: bubble-inset,
+                  ),
+                  fill: background-color,
+                  radius: radius,
+                  text(size: .7em, reaction),
+                ),
+              )
+            },
+          ),
+        ),
+      ),
+    ),
+  )
+
+  if reaction != "" {
+    // add margin if reaction bubble was used
+    v(1em)
+  }
+}
+/// Main function to render chat history.
+#let messeji(
+  /// Array of messages. -> array
+  chat-data: [],
+
+  /// Date format when the day changes. -> str
+  date-changed-format: none,
+
+  /// Timestamp format every time a message contains a `date` value. -> str
+  timestamp-format: "[year]-[month]-[day] [hour]:[minute]",
+
+  /// Image dictionary. Key is filename, value is loaded image. Empty version
+  /// with filenames can be generated with `get-image-names`, but has to be filled
+  /// with respective `image`s for every filename before passing it to `messeji`.
+  /// -> dictionary
+  images: (:),
+
+  /// Theme dictionary. If value is not set, the default value is used. ->
+  /// dictionary
+  theme: (:),
+) = {
+  if chat-data.len() == 0 {
+    return
+  }
+
+  set block(spacing: 0pt)
+  set text(top-edge: 1em, baseline: -0.15em)
+
+  let curr-theme = _fill_dict_default(theme, default-theme)
+
+  let last_day = 0
+  let previous_sender = chat-data.first().at("from_me")
+
+  for (i, msg) in chat-data.enumerate() {
+    // Alignment
+    let msg_align = "left"
+    if "from_me" in msg {
+      if msg.at("from_me") {
+        msg_align = "right"
+      }
+    }
+
+    let time_str = ""
+    let date_str = ""
+    if "date" in msg {
+      let date_val = msg.at("date")
+      let parsed_date = _parse_timestamp_iso_8601(date_val)
+
+      if date-changed-format != none and last_day != parsed_date.day() {
+        date_str = parsed_date.display(date-changed-format)
+        last_day = parsed_date.day()
+      }
+      // show time
+      time_str = parsed_date.display(timestamp-format)
+    }
+
+    if previous_sender != msg.at("from_me") {
+      // different sender -> more padding
+      previous_sender = msg.at("from_me")
+      if not "date" in msg {
+        v(16pt)
+      } else {
+        v(4pt)
+      }
+    }
+
+    let quote = ""
+    if "ref" in msg {
+      quote = msg.at("ref")
+    }
+
+    let image = none
+    if "image" in msg {
+      let image-name = msg.at("image")
+      image = images.at(image-name)
+    }
+
+    let msg_text = ""
+    if "msg" in msg {
+      msg_text = msg.at("msg")
+    }
+
+    let reaction = ""
+    if "reaction" in msg {
+      reaction = msg.at("reaction")
+    }
+
+    block(
+      breakable: false,
+      width: 100%,
+      stack(
+        dir: ttb,
+        if date_str != "" {
+          align(center)[
+            #v(16pt)
+            #text(curr-theme.at("date-changed-color"), size: curr-theme.at("date-changed-size"), date_str)
+            #v(8pt)
+          ]
+        },
+        if time_str != "" {
+          align(center)[
+            #v(16pt)
+            #text(curr-theme.at("timestamp-color"), size: curr-theme.at("timestamp-size"), time_str)
+            #v(8pt)
+          ]
+        },
+        _chat-bubble(
+          curr-theme,
+          msg_text,
+          image: image,
+          quote: quote,
+          reaction: reaction,
+          msg-align: msg_align,
+        ),
+      ),
+    )
+  }
+}
+
+/// Helper function to get image names that are present in the chat for further
+/// processing.
+/// -> dictionary
+#let get-image-names(
+  /// Array of messages. -> array
+  chat-data,
+) = {
+  let results = (:)
+
+  for msg in chat-data {
+    if "image" in msg {
+      let image-name = msg.at("image")
+      results.insert(image-name, none)
+    }
+  }
+  return results
+}
+</file>
+
+<file path="README.md">
+# messēji
+
+_messēji_ ("Message" in Japanese) is a Typst package for typesetting chat
+histories in a modern, minimal design, inspired by popular messengers. No manual
+copying to your Typst document required, just pass in a JSON file.
+
+![Example Chat](docs/example.jpg)
+
+Main features of _messēji_ include:
+
+- Support for quoted messages
+- Image messages (with and without captions)
+- Displaying timestamps between messages
+- Simple data model to read from external files (JSON, YAML, ...) if you want to
+  typeset very long chat histories
+- Reacting to messages
+
+To see how it works, read the short introduction below, or
+[the messeji user manual](https://github.com/Tanikai/messeji/blob/main/docs/messeji-guide.pdf)
+for a more in-depth explanation.
+
+## Import
+
+```typst
+#import "@preview/messeji:0.3.0": messeji
+```
+
+## Basic Usage
+
+The JSON file just needs to be an array of messages:
+
+```json5
+[
+  {
+    "date": "2026-12-25T09:41:00",
+    "msg": "Merry Christmas! 🎄",
+    "from_me": false
+  },
+  {
+    "msg": "Thank you! 😊",
+    "ref": "Merry Christmas! 🎄", // Responses to messages have to be duplicated
+    "from_me": true
+  }
+]
+```
+
+Then, you can import the JSON file with the built-in JSON parser from Typst and
+typeset it by calling `messeji`:
+
+```typst
+#let parsed-data = json("mychat.json")
+#messeji(chat-data: parsed-data)
+```
+
+If you don't want to use a JSON file or parse your own filetype, you just have
+to pass a list of messages to `messeji`:
+
+```typst
+#let my-messages = (
+  (
+    date: "2024-01-01T12:00:00",
+    msg: "This is defined directly in the Typst file.",
+    from_me: false,
+  ),
+  (
+    msg: "Nice!",
+    from_me: true,
+  ),
+)
+#messeji(chat-data: my-messages)
+```
+
+## Theming
+
+You can also customize the appearance of the messages. This is explained in
+[the messeji user manual](https://github.com/Tanikai/messeji/blob/main/docs/messeji-guide.pdf).
+
+## Known Issues
+
+Currently, there is no support for:
+
+- Group chats (only 1-on-1 chats)
+- Displaying names / profile pictures next to the messages
+
+These features are currently not planned to be implemented. However, if you need
+them, [create an issue](https://github.com/Tanikai/messeji/issues) and I'll look
+into it (if I have the time).
+</file>
+
+<file path="typst.toml">
+[package]
+name = "messeji"
+version = "0.3.0"
+entrypoint = "messeji.typ"
+authors = ["Kai Anter <https://www.anter.dev>"]
+license = "MIT"
+description = "Typeset multi-page chat histories, including from external JSON files."
+repository = "https://github.com/Tanikai/messeji"
+keywords = ["chat", "history", "message", "messenger"]
+categories = ["visualization", "fun"]
+exclude = [".gitignore", "docs", "tests"]
+</file>
+
+</files>
