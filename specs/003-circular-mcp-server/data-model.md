@@ -24,7 +24,7 @@ This document defines all data entities, structures, and relationships for the C
 ```go
 type CertificationTransaction struct {
     // Transaction Identification
-    TransactionID string `json:"transaction_id"` // Assigned by blockchain (not calculated)
+    TransactionID string `json:"transaction_id"` // Calculated client-side: SHA-256(Blockchain+From+To+Payload+Nonce+Timestamp)
 
     // Transaction Content
     From          string `json:"from"`           // Sender wallet address
@@ -48,7 +48,7 @@ type CertificationTransaction struct {
 - `Timestamp`: Must use Circular Protocol format `YYYY:MM:DD-HH:MM:SS`
 - `Nonce`: Sequential counter, must match wallet's current nonce
 - `Signature`: 65 bytes (130 hex chars) - R (32) + S (32) + V (1)
-- `TransactionID`: Assigned by blockchain after submission (empty before submission)
+- `TransactionID`: Calculated client-side before submission using SHA-256(Blockchain+From+To+Payload+Nonce+Timestamp)
 
 **Validation Rules**:
 ```go
@@ -87,21 +87,26 @@ func (tx *CertificationTransaction) Validate() error {
 **Usage Example** (from `certify_data` tool):
 ```go
 tx := &CertificationTransaction{
-    From:      wallet.Address,
-    Payload:   hexEncodedData,
-    Timestamp: getFormattedTimestamp(),
-    Type:      "certificate",
-    Nonce:     wallet.Nonce,
-    Network:   "testnet",
+    From:         wallet.Address,
+    To:           wallet.Address,  // Self-transaction for certificates
+    Payload:      hexEncodedData,
+    Timestamp:    getFormattedTimestamp(),
+    Type:         "certificate",
+    Nonce:        wallet.Nonce,
+    Network:      "testnet",
+    BlockchainID: "0x8a20baa40c45dc5055aeb26197c203e576ef389d9acb171bd62da11dc5ad72b2",
 }
 
-// Sign transaction
-signature, err := signer.Sign(tx, privateKey)
+// Calculate transaction ID client-side (Enterprise APIs pattern)
+tx.TransactionID = calculateTransactionID(tx.BlockchainID, tx.From, tx.To, tx.Payload, tx.Nonce, tx.Timestamp)
+
+// Sign transaction ID
+signature, err := signer.Sign(tx.TransactionID, privateKey)
 tx.Signature = signature
 
-// Submit to blockchain
+// Submit to blockchain (API echoes back the client-calculated ID)
 response, err := client.SubmitCertificate(tx)
-tx.TransactionID = response.TransactionID
+// Verify: response.TransactionID should match tx.TransactionID
 ```
 
 ---

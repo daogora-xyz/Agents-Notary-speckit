@@ -136,20 +136,24 @@ Edit `config.yaml`:
 ```yaml
 networks:
   circular-testnet:
-    name: "Circular Testnet"
+    name: "Circular Testnet (Sandbox)"
     network_id: "testnet"
-    base_url: "${CIRCULAR_TESTNET_URL}"
+    nag_discovery_url: "https://circularlabs.io/network/getNAG"
+    blockchain_id: "0x8a20baa40c45dc5055aeb26197c203e576ef389d9acb171bd62da11dc5ad72b2"  # Sandbox chain
     explorer_url: "https://circularlabs.io/Explorer?network=testnet"
-    payee_address: "${CIRCULAR_TESTNET_ADDRESS}"
+    payee_address: "${CIRCULAR_CEP_TESTNET_ADDRESS}"
     currency_symbol: "CIRX"
+    # base_url is dynamically discovered via NAG: getNAG?network=testnet
 
   circular-mainnet:
     name: "Circular Mainnet"
     network_id: "mainnet"
-    base_url: "${CIRCULAR_MAINNET_URL}"
+    nag_discovery_url: "https://circularlabs.io/network/getNAG"
+    blockchain_id: "mainnet"  # Discovered via NAG
     explorer_url: "https://circularlabs.io/Explorer?network=mainnet"
-    payee_address: "${CIRCULAR_MAINNET_ADDRESS}"
+    payee_address: "${CIRCULAR_CEP_MAINNET_ADDRESS}"
     currency_symbol: "CIRX"
+    # base_url is dynamically discovered via NAG: getNAG?network=mainnet
 
 log_level: "info"
 ```
@@ -163,7 +167,8 @@ log_level: "info"
 # Expected output:
 # ✓ Configuration loaded successfully
 # ✓ 2 networks configured: circular-testnet, circular-mainnet
-# ✓ Private key loaded from CIRCULAR_PRIVATE_KEY
+# ✓ NAG discovery: testnet -> https://nag.circularlabs.io/NAG.php?cep=
+# ✓ Private key loaded from CIRCULAR_CEP_TESTNET_PRIVATE_KEY
 # ✓ Ready to start server
 ```
 
@@ -201,9 +206,11 @@ The server uses stdio transport - connect your MCP host (Claude Desktop, custom 
       "command": "/path/to/circular-mcp-server",
       "args": ["--config", "/path/to/config.yaml"],
       "env": {
-        "CIRCULAR_TESTNET_URL": "https://api.testnet.circularlabs.io",
-        "CIRCULAR_TESTNET_ADDRESS": "0xYourAddress",
-        "CIRCULAR_PRIVATE_KEY": "0xYourPrivateKey"
+        "CIRCULAR_CEP_TESTNET_PRIVATE_KEY": "your_testnet_private_key_hex",
+        "CIRCULAR_CEP_TESTNET_ADDRESS": "0xYourAddress",
+        "CIRCULAR_CEP_TESTNET_BLOCKCHAIN_ID": "0x8a20baa40c45dc5055aeb26197c203e576ef389d9acb171bd62da11dc5ad72b2",
+        "CIRCULAR_CEP_NAG_DISCOVERY_URL": "https://circularlabs.io/network/getNAG",
+        "CIRCULAR_CEP_NETWORK": "testnet"
       }
     }
   }
@@ -517,25 +524,27 @@ curl -X POST http://localhost:8080/tools/certify_data \
 
 **Error**:
 ```
-[ERROR] Failed to load private key: CIRCULAR_PRIVATE_KEY environment variable not set
+[ERROR] Failed to load private key: CIRCULAR_CEP_TESTNET_PRIVATE_KEY environment variable not set
 ```
 
 **Solution**:
 1. Ensure `.env` file exists and is loaded: `source .env`
-2. Verify `CIRCULAR_PRIVATE_KEY` is set: `echo $CIRCULAR_PRIVATE_KEY`
-3. Check private key format: Must be hex string with or without `0x` prefix
+2. Verify env var is set: `echo $CIRCULAR_CEP_TESTNET_PRIVATE_KEY`
+3. Check private key format: Must be hex string (with or without `0x` prefix)
+4. For mainnet, ensure `CIRCULAR_CEP_MAINNET_PRIVATE_KEY` is set
 
 ---
 
-### Issue: "API base URL not resolved"
+### Issue: "NAG discovery failed"
 
 **Error**:
 ```
-[ERROR] Network circular-testnet: base_url is required
+[ERROR] NAG discovery failed for network testnet: connection refused
 ```
 
 **Solution**:
-1. Verify `CIRCULAR_TESTNET_URL` in `.env`
+1. Verify internet connectivity
+2. Check `CIRCULAR_CEP_NAG_DISCOVERY_URL` is set correctly: `https://circularlabs.io/network/getNAG`
 2. Update base URL once Circular Protocol REST API endpoints are confirmed
 3. Contact Circular Protocol support for official API URLs
 

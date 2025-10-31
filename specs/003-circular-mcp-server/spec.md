@@ -9,7 +9,7 @@
 
 ### Session 2025-10-30
 
-- Q: How should the MCP server access the private key for signing certification transactions? → A: Load from environment variable (e.g., CIRCULAR_PRIVATE_KEY) at server startup
+- Q: How should the MCP server access the private key for signing certification transactions? → A: Load from environment variable (CIRCULAR_CEP_TESTNET_PRIVATE_KEY for testnet, CIRCULAR_CEP_MAINNET_PRIVATE_KEY for mainnet) at server startup
 - Q: What is the maximum size limit for data payloads that can be certified in a single transaction? → A: 1 MB (medium documents, certificates, proofs)
 - Q: What should be the polling interval when checking transaction status with get_transaction_status? → A: Fixed 5 seconds between each poll
 - Q: When the Circular Protocol API returns an error or is unavailable, what information should the system provide to the agent? → A: Structured error with: error type, HTTP status code, error message, and retry suggestion
@@ -101,9 +101,9 @@ An AI agent needs to retrieve the current nonce for a wallet address to construc
 - **FR-002**: System MUST provide a certify_data tool that constructs a C_TYPE_CERTIFICATE transaction with the provided data payload
 - **FR-002a**: System MUST reject data payloads exceeding 1 MB with a clear error message
 - **FR-003**: System MUST sign certification transactions using Secp256k1 cryptographic signing
-- **FR-003a**: System MUST load the private key from an environment variable (CIRCULAR_PRIVATE_KEY) at server startup for transaction signing
+- **FR-003a**: System MUST load the private key from an environment variable (CIRCULAR_CEP_TESTNET_PRIVATE_KEY for testnet, CIRCULAR_CEP_MAINNET_PRIVATE_KEY for mainnet) at server startup for transaction signing
 - **FR-004**: System MUST submit signed transactions to the Circular Protocol blockchain via Circular_AddTransaction_ API
-- **FR-005**: System MUST calculate transaction IDs as SHA-256 hash of concatenated From+To+Payload+Timestamp fields
+- **FR-005**: System MUST calculate transaction IDs client-side as SHA-256 hash of concatenated Blockchain+From+To+Payload+Nonce+Timestamp fields (as per Circular Protocol Enterprise APIs pattern)
 - **FR-006**: System MUST provide a get_transaction_status tool that polls transaction status until it reaches "Executed" state
 - **FR-006a**: System MUST use a fixed 5-second interval between status polling attempts
 - **FR-007**: System MUST handle transaction status transitions: Pending → Verified → Executed
@@ -120,7 +120,7 @@ An AI agent needs to retrieve the current nonce for a wallet address to construc
 ### Key Entities
 
 - **Certification Transaction**: A C_TYPE_CERTIFICATE transaction containing data payload, sender address, nonce, timestamp, and cryptographic signature. Represents an immutable record on the blockchain.
-- **Transaction ID**: A unique identifier calculated as SHA-256 hash of From+To+Payload+Timestamp. Used to track and retrieve transaction status.
+- **Transaction ID**: A unique identifier calculated client-side as SHA-256 hash of Blockchain+From+To+Payload+Nonce+Timestamp (per Enterprise APIs pattern). Used to track and retrieve transaction status.
 - **Nonce**: A sequential counter for each wallet address ensuring transaction ordering and preventing replay attacks.
 - **Certification Proof**: Contains block ID, timestamp, and explorer URL. Provides verifiable evidence that data was certified at a specific time.
 - **Network Configuration**: Distinguishes between testnet and mainnet, including different API endpoints and explorer URLs.

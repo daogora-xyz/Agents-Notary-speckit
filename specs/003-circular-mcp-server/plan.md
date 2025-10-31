@@ -7,12 +7,14 @@
 
 ## Summary
 
-Build an MCP server that provides 4 tools for AI agents to perform blockchain certification operations on Circular Protocol: get_wallet_nonce (fetch nonce), certify_data (create signed C_TYPE_CERTIFICATE transactions), get_transaction_status (poll until "Executed"), and get_certification_proof (generate proof with block ID, timestamp, explorer URL). Uses mcp-go framework, Secp256k1 signing, HTTP REST API integration, and supports testnet/mainnet environments.
+Build an MCP server that provides 4 tools for AI agents to perform blockchain certification operations on Circular Protocol: get_wallet_nonce (fetch nonce), certify_data (create signed C_TYPE_CERTIFICATE transactions), get_transaction_status (poll until "Executed"), and get_certification_proof (generate proof with block ID, timestamp, explorer URL). Uses mcp-go framework, Secp256k1 signing, HTTP REST API integration via NAG (Network Access Gateway) discovery, client-side transaction ID calculation (SHA-256 hash), and supports testnet/mainnet environments.
+
+**Technical Approach**: Implements Circular Protocol Enterprise APIs pattern with dynamic NAG URL discovery at startup (query https://circularlabs.io/network/getNAG?network={testnet|mainnet} to get base API URL), then construct Enterprise API endpoints as {NAG_URL}Circular_{MethodName}_{network}. For testnet development, uses sandbox blockchain ID 0x8a20baa40c45dc5055aeb26197c203e576ef389d9acb171bd62da11dc5ad72b2.
 
 ## Technical Context
 
 **Language/Version**: Go 1.23+
-**Primary Dependencies**: mcp-go (github.com/mark3labs/mcp-go), crypto/ecdsa (Secp256k1), net/http (Circular Protocol REST API client)
+**Primary Dependencies**: mcp-go (github.com/mark3labs/mcp-go), crypto/ecdsa (Secp256k1), net/http (Circular Protocol Enterprise REST API client with NAG discovery)
 **Storage**: In-memory only (no persistent storage required for MCP server)
 **Testing**: Go testing framework with contract, integration, and unit test coverage
 **Target Platform**: Linux server (stdio transport for MCP host communication)
@@ -57,7 +59,7 @@ Build an MCP server that provides 4 tools for AI agents to perform blockchain ce
 
 ### IV. Security-First Design ✅
 
-- ✅ Private key loaded from environment variable (CIRCULAR_PRIVATE_KEY)
+- ✅ Private key loaded from environment variable (CIRCULAR_CEP_TESTNET_PRIVATE_KEY for testnet, CIRCULAR_CEP_MAINNET_PRIVATE_KEY for mainnet)
 - ✅ Private key never logged or exposed in responses
 - ✅ Secp256k1 signature verification for transaction signing
 - ✅ Input validation: 1 MB payload limit, wallet address format validation
@@ -76,14 +78,14 @@ Build an MCP server that provides 4 tools for AI agents to perform blockchain ce
 
 ### VI. Blockchain Integration Standards ✅
 
-- ✅ Uses Secp256k1 signing (Circular Protocol compatible - standard curve)
+- ✅ Uses Secp256k1 signing (Circular Protocol Enterprise APIs compatible - standard curve)
 - ✅ Transaction status polling until "Executed" (5s interval, 60s timeout)
-- ✅ Testnet and mainnet support (via config.yaml networks)
+- ✅ Testnet and mainnet support (via config.yaml networks with NAG discovery)
 - ✅ Circular Protocol C_TYPE_CERTIFICATE transactions (confirmed via Enterprise API research)
 - ✅ CIRX fee model: $0.001-$0.035 per transaction, automatic deduction from sender wallet
 - ✅ Retry logic designed: exponential backoff for API errors, 3 max attempts
-- ✅ Transaction ID handling: assigned by blockchain (not calculated client-side)
-- ✅ REST API architecture: Go HTTP client for Circular Enterprise APIs
+- ✅ Transaction ID handling: calculated CLIENT-SIDE using SHA-256(Blockchain+From+To+Payload+Nonce+Timestamp) per Enterprise APIs pattern (cross-verified with Go and NodeJS implementations)
+- ✅ REST API architecture: Go HTTP client for Circular Enterprise APIs with NAG discovery
 
 **Status**: PASS - All blockchain integration requirements resolved via research.md
 
